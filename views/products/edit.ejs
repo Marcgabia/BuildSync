@@ -1,0 +1,22 @@
+<%- include('../partials/header', { title: `Edit ${product.name}`, activePage: 'products' }) %>
+<main class="page-shell page-narrow">
+  <a class="back-link" href="/products/<%= product.id %>">← Back to product</a>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">CATALOG</p><h1>Edit product</h1><p class="muted">Stock quantities change only through deliveries and stock adjustments.</p></div></div>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form action="/products/<%= product.id %>/edit" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>SKU / product code *<input name="product_code" maxlength="60" required value="<%= values.product_code %>"></label>
+      <label>Product name *<input name="name" maxlength="200" required value="<%= values.name %>"></label>
+      <label>Category *<select name="category_id" required><% categories.forEach((c) => { %><option value="<%= c.id %>" <%= String(values.category_id) === String(c.id) ? 'selected' : '' %>><%= c.name %></option><% }) %></select></label>
+      <label>Supplier<select name="supplier_id"><option value="">No preferred supplier</option><% suppliers.forEach((s) => { %><option value="<%= s.id %>" <%= String(values.supplier_id || '') === String(s.id) ? 'selected' : '' %>><%= s.vendor_name %></option><% }) %></select></label>
+      <label>Unit of measurement *<input name="unit" maxlength="30" required value="<%= values.unit %>"></label>
+      <label>Unit price (PHP) *<input name="unit_price" type="number" min="0" step="0.01" required value="<%= values.unit_price %>"></label>
+      <label>Minimum stock level<input name="minimum_stock" type="number" min="0" step="1" value="<%= values.minimum_stock %>"></label>
+      <label>Status<select name="status"><% statuses.forEach((s) => { %><option <%= values.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+      <label class="field-wide">Description<textarea name="description" rows="3" maxlength="5000"><%= values.description || '' %></textarea></label>
+      <div class="form-actions field-wide"><a class="button button-secondary" href="/products/<%= product.id %>">Cancel</a><button class="button button-primary" type="submit">Save changes</button></div>
+    </form>
+  </section>
+</main>
+<%- include('../partials/footer') %>

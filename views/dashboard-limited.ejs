@@ -1,0 +1,14 @@
+<%- include('partials/header', { title: 'Welcome', activePage: 'dashboard' }) %>
+<main class="page-shell">
+  <section class="welcome-panel">
+    <div>
+      <p class="eyebrow">BuildSync Procurement</p>
+      <h1>Welcome, <%= currentUser.fullName %>.</h1>
+      <p class="muted">Your role does not include the procurement dashboard. Use the navigation to open the modules available to you.</p>
+    </div>
+    <div class="welcome-actions">
+      <a class="button button-light" href="/notifications">Open notifications</a>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer') %>

@@ -1,0 +1,10 @@
+<% const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; %>
+<label>Budget name *<input name="name" maxlength="150" required placeholder="e.g. Operations FY2026" value="<%= values.name || '' %>"></label>
+<label>Department *<select name="department_id" required><option value="">Choose a department</option><% departments.forEach((d) => { %><option value="<%= d.id %>" <%= String(values.department_id || '') === String(d.id) ? 'selected' : '' %>><%= d.name %></option><% }) %></select></label>
+<label>Budget period *<select name="period_type" required><% ['Annual', 'Monthly'].forEach((p) => { %><option <%= values.period_type === p ? 'selected' : '' %>><%= p %></option><% }) %></select></label>
+<label>Fiscal year *<input name="fiscal_year" type="number" min="2000" max="2100" required value="<%= values.fiscal_year || '' %>"></label>
+<label>Month (monthly budgets)<select name="period_month"><option value="">—</option><% months.forEach((m, i) => { %><option value="<%= i + 1 %>" <%= Number(values.period_month) === i + 1 ? 'selected' : '' %>><%= m %></option><% }) %></select></label>
+<label>Allocated amount (PHP) *<input name="allocated_amount" type="number" min="0" step="0.01" required value="<%= values.allocated_amount === undefined ? '' : values.allocated_amount %>"></label>
+<label>Warning threshold (%) *<input name="warning_threshold" type="number" min="1" max="100" step="0.01" required value="<%= values.warning_threshold === undefined ? 80 : Number(values.warning_threshold) %>"></label>
+<label>Status<select name="status"><% statuses.forEach((s) => { %><option <%= (values.status || 'Active') === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+<label class="field-wide">Notes<input name="notes" maxlength="1000" value="<%= values.notes || '' %>"></label>

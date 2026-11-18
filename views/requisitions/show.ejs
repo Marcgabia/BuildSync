@@ -1,0 +1,107 @@
+<%- include('../partials/header', { title: requisition.requisition_number, activePage: 'requisitions' }) %>
+<main class="page-shell">
+  <a class="back-link" href="/requisitions">← Back to requisitions</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">PURCHASE REQUISITION</p>
+      <h1><%= requisition.requisition_number %></h1>
+      <p class="muted">Requested by <%= requisition.requester_name %> · <%= requisition.department_name %> · <%= requisition.request_date %></p>
+    </div>
+    <div class="detail-actions">
+      <%- include('../partials/status', { status: requisition.status }) %>
+      <% if (isOwner && editable) { %>
+        <a class="button button-secondary" href="/requisitions/<%= requisition.id %>/edit">Edit</a>
+        <form action="/requisitions/<%= requisition.id %>/submit" method="post" class="inline-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="button button-primary" type="submit">Submit for approval</button>
+        </form>
+      <% } %>
+      <% if (requisition.status === 'Approved' && can('purchase_orders.manage')) { %>
+        <a class="button button-primary" href="/purchase-orders/new?requisition=<%= requisition.id %>">Create purchase order</a>
+      <% } %>
+      <% if (activeOrder) { %><a class="button button-secondary" href="/purchase-orders/<%= activeOrder.id %>">View <%= activeOrder.po_number %></a><% } %>
+    </div>
+  </div>
+
+  <% if (decision.allowed) { %>
+    <section class="panel decision-panel">
+      <div class="section-heading"><div><p class="eyebrow">YOUR DECISION</p><h2>Approval level <%= decision.level %> of <%= decision.levels %></h2></div></div>
+      <form action="/approvals/requisitions/<%= requisition.id %>" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="form-grid"><label class="field-wide">Comments<textarea name="comments" rows="2" maxlength="2000" placeholder="Required when rejecting or returning"></textarea></label></div>
+        <div class="decision-actions">
+          <button class="button button-primary" type="submit" name="decision" value="approve">Approve</button>
+          <button class="button button-warning" type="submit" name="decision" value="return">Return for revision</button>
+          <button class="button button-danger" type="submit" name="decision" value="reject" data-confirm-click="Reject this requisition? It cannot proceed to a purchase order.">Reject</button>
+        </div>
+      </form>
+    </section>
+  <% } else if (decision.reason) { %>
+    <div class="alert alert-warning"><%= decision.reason %></div>
+  <% } %>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">REQUEST</p><h2>Details</h2></div></div>
+    <dl class="detail-grid">
+      <div><dt>Requested by</dt><dd><%= requisition.requester_name %> (<%= requisition.requester_email %>)</dd></div>
+      <div><dt>Department</dt><dd><%= requisition.department_name %></dd></div>
+      <div><dt>Request date</dt><dd><%= requisition.request_date %></dd></div>
+      <div><dt>Required date</dt><dd><%= requisition.required_date %></dd></div>
+      <div><dt>Submitted</dt><dd><%= format.dateTime(requisition.submitted_at) %></dd></div>
+      <div><dt>Decided</dt><dd><%= format.dateTime(requisition.decided_at) %></dd></div>
+      <div class="detail-grid-wide"><dt>Purpose or justification</dt><dd><%= requisition.purpose %></dd></div>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">ITEMS</p><h2>Requested products <span class="count-badge"><%= requisition.items.length %></span></h2></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Product</th><th>Description</th><th class="align-right">Quantity</th><th class="align-right">In stock</th><th class="align-right">Est. unit price</th><th class="align-right">Subtotal</th></tr></thead>
+        <tbody>
+          <% requisition.items.forEach((item) => { %>
+            <tr>
+              <td><%= item.line_no %></td>
+              <td><span class="table-primary"><%= item.product_name %></span><span class="table-secondary"><%= item.product_code %></span></td>
+              <td><%= item.description || '—' %></td>
+              <td class="align-right"><%= item.quantity %> <%= item.unit %></td>
+              <td class="align-right"><%= item.current_stock %></td>
+              <td class="align-right"><%= format.money(item.estimated_unit_price) %></td>
+              <td class="align-right"><%= format.money(item.subtotal) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot><tr><td colspan="6" class="align-right">Total estimated amount</td><td class="align-right"><%= format.money(requisition.total_estimated) %></td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">AUDIT</p><h2>Approval history</h2></div></div>
+      <% if (history.length) { %>
+        <ul class="timeline">
+          <% history.forEach((h) => { %>
+            <li class="<%= h.status.toLowerCase() %>"><strong><%= h.status %></strong> (level <%= h.approval_level %>) by <%= h.approver_name %><br><span class="list-meta"><%= format.dateTime(h.approved_at) %></span><% if (h.comments) { %><br><%= h.comments %><% } %></li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted">No approval decisions yet.</p><% } %>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">PURCHASING</p><h2>Purchase orders</h2></div></div>
+      <% if (requisition.orders.length) { %>
+        <ul class="list-plain">
+          <% requisition.orders.forEach((o) => { %><li><a class="table-primary" href="/purchase-orders/<%= o.id %>"><%= o.po_number %></a><span><%- include('../partials/status', { status: o.status }) %> <%= format.money(o.total_cost) %></span></li><% }) %>
+        </ul>
+      <% } else { %><p class="muted">No purchase order has been created from this requisition.</p><% } %>
+      <% if (cancellable && (isOwner || can('requisitions.approve'))) { %>
+        <br>
+        <form action="/requisitions/<%= requisition.id %>/cancel" method="post" class="js-confirm" data-confirm="Cancel this requisition?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="button button-danger" type="submit">Cancel requisition</button>
+        </form>
+      <% } %>
+    </section>
+  </div>
+</main>
+<%- include('../partials/footer') %>

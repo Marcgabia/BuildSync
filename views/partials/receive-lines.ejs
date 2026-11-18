@@ -1,0 +1,22 @@
+<%
+  // Receiving table. Expects: lines (order items with remaining_quantity)
+%>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Item</th><th class="align-right">Ordered</th><th class="align-right">Previously received</th><th class="align-right">Remaining</th><th>Newly received</th><th>Damaged</th><th>Remarks</th></tr></thead>
+    <tbody>
+      <% lines.forEach((line, index) => { const remaining = Number(line.remaining_quantity); %>
+        <tr>
+          <td><span class="table-primary"><%= line.item_code %></span><span class="table-secondary"><%= line.description %></span><input type="hidden" name="po_item_id" value="<%= line.id %>"></td>
+          <td class="align-right"><%= line.quantity %> <%= line.unit || '' %></td>
+          <td class="align-right"><%= line.received_quantity %></td>
+          <td class="align-right"><strong><%= remaining %></strong></td>
+          <td><input class="status-select" name="received_quantity" type="number" min="0" max="<%= remaining %>" step="1" value="<%= locals.prefill && locals.prefill[index] !== undefined ? locals.prefill[index] : 0 %>" aria-label="Newly received for <%= line.item_code %>" <%= remaining <= 0 ? 'readonly' : '' %>></td>
+          <td><input class="status-select" name="damaged_quantity" type="number" min="0" max="<%= remaining %>" step="1" value="0" aria-label="Damaged for <%= line.item_code %>" <%= remaining <= 0 ? 'readonly' : '' %>></td>
+          <td><input class="status-select" name="line_remarks" maxlength="500" aria-label="Remarks for <%= line.item_code %>"></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<p class="form-hint">Accepted quantity = newly received − damaged. Only accepted quantities increase inventory and count toward the order. Received quantities cannot exceed the remaining quantity.</p>

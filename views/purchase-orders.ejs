@@ -1,0 +1,106 @@
+<%- include('partials/header', { title: 'Purchase orders', activePage: 'purchase-orders' }) %>
+<% const can = typeof locals.can === 'function' ? locals.can : () => true;
+   const f = locals.filters || { search: '', status: 'All', supplierId: 0, from: '', to: '' };
+   const pageInfo = locals.pageInfo || { page: 1, totalPages: 1, total: orders.length };
+   const money = (v) => Number(v || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
+   const statusClass = (s) => (locals.format ? locals.format.statusClass(s) : ''); %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">PROCUREMENT WORKFLOW</p>
+      <h1>Purchase orders</h1>
+      <p class="muted">Create orders, track approvals, and keep delivery dates visible.</p>
+    </div>
+    <% if (can('purchase_orders.manage')) { %><div class="toolbar"><a class="button button-primary" href="/purchase-orders/new">New purchase order <span aria-hidden="true">＋</span></a></div><% } %>
+  </div>
+
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+  <% if (success) { %><div class="alert alert-success" role="status"><%= success %></div><% } %>
+  <section class="panel">
+    <div class="section-heading">
+      <div><p class="eyebrow">ORDER REGISTER</p><h2>All purchase orders <span class="count-badge"><%= pageInfo.total %></span></h2></div>
+      <% if (can('reports.export')) { %><a class="button button-secondary button-small" href="/purchase-orders/export.csv?q=<%= encodeURIComponent(f.search) %>&amp;status=<%= encodeURIComponent(f.status) %>&amp;supplier=<%= f.supplierId || '' %>&amp;from=<%= f.from %>&amp;to=<%= f.to %>">Export CSV</a><% } %>
+    </div>
+    <form class="filter-bar" action="/purchase-orders" method="get" role="search">
+      <label>Search<input type="search" name="q" value="<%= f.search %>" placeholder="PO number or supplier"></label>
+      <label>Status
+        <select name="status"><option value="All">All statuses</option>
+          <% statuses.forEach((s) => { %><option value="<%= s %>" <%= f.status === s ? 'selected' : '' %>><%= s %></option><% }) %>
+        </select>
+      </label>
+      <% if (locals.allSuppliers) { %>
+      <label>Supplier
+        <select name="supplier"><option value="">All suppliers</option>
+          <% allSuppliers.forEach((s) => { %><option value="<%= s.id %>" <%= Number(f.supplierId) === Number(s.id) ? 'selected' : '' %>><%= s.vendor_name %></option><% }) %>
+        </select>
+      </label>
+      <% } %>
+      <label>Order date from<input type="date" name="from" value="<%= f.from %>"></label>
+      <label>to<input type="date" name="to" value="<%= f.to %>"></label>
+      <button class="button button-secondary" type="submit">Filter</button>
+      <% if (f.search || f.status !== 'All' || f.supplierId || f.from || f.to) { %><a class="text-link" href="/purchase-orders">Clear</a><% } %>
+    </form>
+    <% if (orders.length) { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>PO number</th><th>Supplier</th><th>Order / expected</th><th>Lines</th><th>Status</th><th class="align-right">Total</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>
+            <% orders.forEach((order) => { %>
+              <tr>
+                <td><a class="table-primary" href="/purchase-orders/<%= order.id %>"><%= order.po_number %></a><span class="table-secondary"><%= order.requisition_number ? `From ${order.requisition_number}` : (order.item_sku ? `${order.item_sku} · ${order.description}` : (order.department_name || '')) %></span></td>
+                <td><span><%= order.vendor_name %></span><span class="table-secondary"><%= order.supplier_code %></span></td>
+                <td><%= order.order_date || '—' %><span class="table-secondary">Expected <%= order.target_date %></span></td>
+                <td><%= order.line_count || (order.quantity_ordered ? 1 : 0) %></td>
+                <td><span class="status-pill <%= statusClass(order.status) %>"><%= order.status %></span></td>
+                <td class="align-right"><span class="table-primary"><%= money(order.total_cost) %></span></td>
+                <td class="supplier-actions"><a class="text-link" href="/purchase-orders/<%= order.id %>">View</a><% if (order.status === 'Draft' && can('purchase_orders.manage')) { %><a class="text-link" href="/purchase-orders/<%= order.id %>/edit">Edit</a><% } %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% if (locals.pageInfo) { %><%- include('partials/pagination', { pageInfo, basePath: '/purchase-orders', params: { q: f.search, status: f.status, supplier: f.supplierId, from: f.from, to: f.to }, noun: 'orders' }) %><% } %>
+    <% } else { %>
+      <div class="empty-state">
+        <span class="empty-icon" aria-hidden="true">↗</span>
+        <h3>No purchase orders yet</h3>
+        <p>Create an order to start tracking approvals and deliveries.</p>
+      </div>
+    <% } %>
+  </section>
+
+  <% if (can('purchase_orders.manage')) { %>
+  <section class="panel form-panel" id="create-order">
+    <div class="section-heading">
+      <div><p class="eyebrow">QUICK ENTRY</p><h2>Create purchase order</h2></div>
+      <span class="form-hint">Single-item order, submitted for approval. Use <a class="text-link" href="/purchase-orders/new">New purchase order</a> for multiple products, discounts, and taxes.</span>
+    </div>
+    <% if (suppliers.length) { %>
+      <form action="/purchase-orders/add" method="post" class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>PO number *<input name="po_number" maxlength="50" required placeholder="e.g. PO-2026-001" value="<%= formValues.po_number || '' %>"></label>
+        <label>Supplier *
+          <select name="supplier_id" required>
+            <option value="">Choose an active supplier</option>
+            <% suppliers.forEach((supplier) => { %>
+              <option value="<%= supplier.id %>" <%= String(formValues.supplier_id || '') === String(supplier.id) ? 'selected' : '' %>><%= supplier.vendor_name %> · <%= supplier.supplier_code %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Item SKU *<input name="item_sku" maxlength="100" required placeholder="Item or product code" value="<%= formValues.item_sku || '' %>"></label>
+        <label>Target delivery date *<input name="target_date" type="date" required value="<%= formValues.target_date || '' %>"></label>
+        <label>Quantity *<input name="quantity_ordered" type="number" min="1" step="1" required value="<%= formValues.quantity_ordered === undefined ? 1 : formValues.quantity_ordered %>"></label>
+        <label>Unit cost (PHP) *<input name="unit_cost" type="number" min="0" step="0.01" required placeholder="0.00" value="<%= formValues.unit_cost || '' %>"></label>
+        <label class="field-wide">Item description *<textarea name="description" rows="3" required placeholder="Describe the goods or materials being ordered"><%= formValues.description || '' %></textarea></label>
+        <div class="form-actions field-wide"><button class="button button-primary" type="submit">Create purchase order</button></div>
+      </form>
+    <% } else { %>
+      <div class="notice-box">
+        <p>Add or activate a supplier before creating a purchase order.</p>
+        <a class="text-link" href="/suppliers#add-supplier">Go to suppliers <span aria-hidden="true">→</span></a>
+      </div>
+    <% } %>
+  </section>
+  <% } %>
+</main>
+<%- include('partials/footer') %>

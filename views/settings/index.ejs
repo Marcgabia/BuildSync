@@ -1,0 +1,63 @@
+<%- include('../partials/header', { title: 'Settings', activePage: 'settings' }) %>
+<% const choices = {
+     requisition_approval_levels: ['1', '2', '3'], po_approval_levels: ['1', '2', '3'],
+     allow_self_approval: [['0', 'No — another approver must decide'], ['1', 'Yes — approvers may approve their own requests']],
+     budget_overrun_policy: [['block', 'Block approval when the budget is exceeded'], ['warn', 'Allow approval and send a warning']],
+     self_registration: [['approval', 'Allowed — administrator approval required'], ['open', 'Allowed — immediate access'], ['disabled', 'Disabled — administrators create accounts']],
+     self_registration_role: roles.filter((r) => r.role_key !== 'super_admin' && Number(r.is_active)).map((r) => [r.role_key, r.name])
+   }; %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">ADMINISTRATION</p><h1>Settings</h1><p class="muted">Approval policy, budget rules, alerts, and departments. Every change is recorded in the activity log.</p></div>
+  </div>
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">SYSTEM</p><h2>Configuration</h2></div></div>
+    <form action="/settings" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% settings.forEach((s) => { %>
+        <label><%= s.label %>
+          <% if (choices[s.setting_key]) { %>
+            <select name="<%= s.setting_key %>">
+              <% choices[s.setting_key].forEach((c) => { const [value, label] = Array.isArray(c) ? c : [c, c]; %><option value="<%= value %>" <%= s.setting_value === value ? 'selected' : '' %>><%= label %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input name="<%= s.setting_key %>" value="<%= s.setting_value %>" maxlength="255" required>
+          <% } %>
+          <span class="form-hint"><%= s.description %></span>
+        </label>
+      <% }) %>
+      <div class="form-actions field-wide"><button class="button button-primary" type="submit">Save settings</button></div>
+    </form>
+  </section>
+
+  <section class="panel" id="departments">
+    <div class="section-heading"><div><p class="eyebrow">ORGANIZATION</p><h2>Departments</h2></div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Name</th><th class="align-right">Users</th><th>Status</th><th>Update</th></tr></thead>
+      <tbody>
+        <% departments.forEach((d) => { %>
+          <tr>
+            <td class="table-primary"><%= d.code %></td>
+            <td colspan="3">
+              <form action="/settings/departments/<%= d.id %>" method="post" class="inline-fields" id="dept-<%= d.id %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input name="name" maxlength="120" required value="<%= d.name %>" aria-label="Department name">
+                <span class="list-meta"><%= d.user_count %> user(s)</span>
+                <select name="is_active" aria-label="Department status"><option value="1" <%= Number(d.is_active) ? 'selected' : '' %>>Active</option><option value="0" <%= Number(d.is_active) ? '' : 'selected' %>>Inactive</option></select>
+              </form>
+            </td>
+            <td><button class="button button-secondary button-small" type="submit" form="dept-<%= d.id %>">Save</button></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+    <br>
+    <form action="/settings/departments" method="post" class="inline-fields">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input name="code" maxlength="20" required placeholder="Code (e.g. ENG)" aria-label="Department code">
+      <input name="name" maxlength="120" required placeholder="Department name" aria-label="Department name">
+      <button class="button button-primary" type="submit">Add department</button>
+    </form>
+  </section>
+</main>
+<%- include('../partials/footer') %>

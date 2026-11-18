@@ -1,0 +1,34 @@
+<%- include('../partials/header', { title: 'Roles', activePage: 'admin' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">ADMINISTRATION</p><h1>User &amp; role management</h1><p class="muted">Roles bundle permissions. Navigation and every protected route are checked against these permissions on the server.</p></div>
+    <a class="button button-primary" href="/admin/roles/new">Create role <span aria-hidden="true">＋</span></a>
+  </div>
+  <%- include('tabs', { tab: 'roles' }) %>
+  <section class="panel">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Role</th><th>Description</th><th class="align-right">Permissions</th><th class="align-right">Users</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% roles.forEach((r) => { %>
+          <tr>
+            <td class="table-primary"><%= r.name %><% if (Number(r.is_system)) { %><span class="table-secondary">System role</span><% } %></td>
+            <td><%= r.description || '—' %></td>
+            <td class="align-right"><%= r.permission_count %></td>
+            <td class="align-right"><a class="text-link" href="/admin/users?role=<%= r.id %>"><%= r.user_count %></a></td>
+            <td><%- include('../partials/status', { status: Number(r.is_active) ? 'Active' : 'Inactive' }) %></td>
+            <td class="supplier-actions">
+              <a class="text-link" href="/admin/roles/<%= r.id %>/edit">Edit</a>
+              <% if (r.role_key !== 'super_admin') { %>
+                <form action="/admin/roles/<%= r.id %>/toggle" method="post" class="inline-form js-confirm" data-confirm="<%= Number(r.is_active) ? 'Deactivate this role? Its users lose these permissions.' : 'Activate this role?' %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="text-button <%= Number(r.is_active) ? 'text-button-danger' : '' %>" type="submit"><%= Number(r.is_active) ? 'Deactivate' : 'Activate' %></button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </section>
+</main>
+<%- include('../partials/footer') %>

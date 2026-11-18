@@ -1,0 +1,26 @@
+<%
+  // Expects: pageInfo { page, totalPages, total }, basePath, params (object of current filters), noun
+  const buildHref = (page) => {
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '' && value !== 'All' && value !== 0 && value !== false) search.set(key, String(value));
+    });
+    search.set('page', String(page));
+    return `${basePath}?${search.toString()}`;
+  };
+%>
+<% if (pageInfo.totalPages > 1) { %>
+<nav class="pagination" aria-label="Pages">
+  <% if (pageInfo.page > 1) { %>
+    <a class="button button-secondary button-small" href="<%= buildHref(pageInfo.page - 1) %>">Previous</a>
+  <% } else { %>
+    <span class="button button-secondary button-small" aria-disabled="true">Previous</span>
+  <% } %>
+  <span>Page <%= pageInfo.page %> of <%= pageInfo.totalPages %> · <%= pageInfo.total %> <%= locals.noun || 'records' %></span>
+  <% if (pageInfo.page < pageInfo.totalPages) { %>
+    <a class="button button-secondary button-small" href="<%= buildHref(pageInfo.page + 1) %>">Next</a>
+  <% } else { %>
+    <span class="button button-secondary button-small" aria-disabled="true">Next</span>
+  <% } %>
+</nav>
+<% } %>

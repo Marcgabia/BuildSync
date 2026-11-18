@@ -1,0 +1,42 @@
+<%
+  // Single-series column chart. Expects: data [{ label, sublabel, value, display }], ariaLabel, valueFormat(fn)
+  const W = 640, H = 230, padL = 64, padR = 8, padT = 14, padB = 34;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const rawMax = Math.max(0, ...data.map((d) => Number(d.value) || 0));
+  const niceMax = (() => {
+    if (rawMax <= 0) return 1;
+    const exp = Math.pow(10, Math.floor(Math.log10(rawMax)));
+    const n = rawMax / exp;
+    const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+    return step * exp;
+  })();
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * niceMax);
+  const band = plotW / Math.max(data.length, 1);
+  const barW = Math.min(34, band * 0.62);
+  const y = (v) => padT + plotH - (v / niceMax) * plotH;
+  const maxIndex = data.reduce((best, d, i) => (Number(d.value) > Number(data[best].value) ? i : best), 0);
+  const roundedTop = (x, top, w, h, r) => {
+    const rr = Math.min(r, w / 2, h);
+    return `M${x},${top + h} L${x},${top + rr} Q${x},${top} ${x + rr},${top} L${x + w - rr},${top} Q${x + w},${top} ${x + w},${top + rr} L${x + w},${top + h} Z`;
+  };
+%>
+<svg class="chart" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="<%= ariaLabel %>">
+  <% ticks.forEach((t) => { %>
+    <line class="grid-line" x1="<%= padL %>" x2="<%= W - padR %>" y1="<%= y(t).toFixed(1) %>" y2="<%= y(t).toFixed(1) %>"></line>
+    <text class="axis-label" x="<%= padL - 8 %>" y="<%= (y(t) + 3).toFixed(1) %>" text-anchor="end"><%= valueFormat(t) %></text>
+  <% }) %>
+  <line class="baseline" x1="<%= padL %>" x2="<%= W - padR %>" y1="<%= y(0) %>" y2="<%= y(0) %>"></line>
+  <% data.forEach((d, i) => {
+       const value = Number(d.value) || 0;
+       const cx = padL + band * i + band / 2;
+       const h = Math.max((value / niceMax) * plotH, value > 0 ? 2 : 0); %>
+    <g class="mark">
+      <title><%= d.label %><%= d.sublabel ? ` ${d.sublabel}` : '' %>: <%= d.display %></title>
+      <rect class="hit" x="<%= (padL + band * i).toFixed(1) %>" y="<%= padT %>" width="<%= band.toFixed(1) %>" height="<%= plotH %>"></rect>
+      <% if (h > 0) { %><path class="bar" d="<%= roundedTop(cx - barW / 2, y(0) - h, barW, h, 4) %>"></path><% } %>
+      <% if (i === maxIndex && value > 0) { %><text class="value-label" x="<%= cx.toFixed(1) %>" y="<%= (y(0) - h - 5).toFixed(1) %>" text-anchor="middle"><%= valueFormat(value) %></text><% } %>
+      <text class="axis-label" x="<%= cx.toFixed(1) %>" y="<%= H - 16 %>" text-anchor="middle"><%= d.label %></text>
+      <% if (d.sublabel && (i === 0 || d.label === 'Jan')) { %><text class="axis-label" x="<%= cx.toFixed(1) %>" y="<%= H - 4 %>" text-anchor="middle"><%= d.sublabel %></text><% } %>
+    </g>
+  <% }) %>
+</svg>

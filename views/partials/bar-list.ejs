@@ -1,0 +1,22 @@
+<%
+  // Horizontal single-series bars, one row per category. Expects: rows [{ label, value, href }], ariaLabel
+  const W = 330, rowH = 32, labelW = 118, valueW = 30;
+  const H = rows.length * rowH;
+  const max = Math.max(1, ...rows.map((r) => Number(r.value) || 0));
+  const plotW = W - labelW - valueW;
+%>
+<svg class="chart" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="<%= ariaLabel %>">
+  <% rows.forEach((r, i) => {
+       const value = Number(r.value) || 0;
+       const w = value > 0 ? Math.max((value / max) * plotW, 3) : 0;
+       const top = i * rowH + 8; %>
+    <g class="mark">
+      <title><%= r.label %>: <%= value %></title>
+      <rect class="hit" x="0" y="<%= i * rowH %>" width="<%= W %>" height="<%= rowH %>"></rect>
+      <text class="axis-label" x="0" y="<%= top + 10 %>"><%= r.label %></text>
+      <rect class="grid-line" x="<%= labelW %>" y="<%= top + 6 %>" width="<%= plotW %>" height="1"></rect>
+      <% if (w > 0) { %><rect class="bar" x="<%= labelW %>" y="<%= top %>" width="<%= w.toFixed(1) %>" height="13" rx="4"></rect><% } %>
+      <text class="value-label" x="<%= W %>" y="<%= top + 10 %>" text-anchor="end"><%= value %></text>
+    </g>
+  <% }) %>
+</svg>

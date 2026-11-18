@@ -1,0 +1,57 @@
+<%- include('../partials/header', { title: budget.name, activePage: 'budgets' }) %>
+<main class="page-shell">
+  <a class="back-link" href="/budgets">← Back to budgets</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">BUDGET #<%= budget.id %></p>
+      <h1><%= budget.name %></h1>
+      <p class="muted"><%= budget.department_name %> · <%= budget.period_type %> · <%= budget.period_start %> to <%= budget.period_end %></p>
+    </div>
+    <div class="detail-actions">
+      <%- include('../partials/status', { status: budget.status }) %>
+      <% if (can('budgets.manage')) { %>
+        <a class="button button-secondary" href="/budgets/<%= budget.id %>/edit">Edit budget</a>
+        <% if (!transactions.length && !orders.length) { %>
+          <form action="/budgets/<%= budget.id %>/delete" method="post" class="inline-form js-confirm" data-confirm="Delete this unused budget?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="button button-danger" type="submit">Delete</button>
+          </form>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+  <% if (budget.utilization >= 100) { %><div class="alert alert-error">This budget is fully used or exceeded (<%= budget.utilization.toFixed(1) %>%).</div>
+  <% } else if (budget.utilization >= Number(budget.warning_threshold)) { %><div class="alert alert-warning">This budget has reached its <%= Number(budget.warning_threshold) %>% warning threshold (<%= budget.utilization.toFixed(1) %>% used).</div><% } %>
+
+  <section class="metric-grid">
+    <article class="metric-card"><span class="metric-label">Allocated</span><strong><%= format.money(budget.allocated_amount) %></strong><span class="metric-note">Warning at <%= Number(budget.warning_threshold) %>%</span></article>
+    <article class="metric-card"><span class="metric-label">Committed</span><strong><%= format.money(budget.committed_amount) %></strong><span class="metric-note">Approved, not yet received</span></article>
+    <article class="metric-card"><span class="metric-label">Actual spending</span><strong><%= format.money(budget.actual_amount) %></strong><span class="metric-note">Accepted deliveries</span></article>
+    <article class="metric-card metric-card-accent"><span class="metric-label">Remaining</span><strong class="<%= budget.remaining_amount < 0 ? 'text-danger' : '' %>"><%= format.money(budget.remaining_amount) %></strong><span class="metric-note"><%= budget.utilization.toFixed(1) %>% utilized</span></article>
+  </section>
+  <section class="panel"><%- include('../partials/meter', { percent: budget.utilization, threshold: budget.warning_threshold }) %><% if (budget.notes) { %><br><p class="muted"><%= budget.notes %></p><% } %></section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">LEDGER</p><h2>Budget transactions <span class="count-badge"><%= transactions.length %></span></h2></div></div>
+    <% if (transactions.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Reference</th><th>Description</th><th>By</th><th class="align-right">Amount</th></tr></thead>
+        <tbody>
+          <% transactions.forEach((t) => { %>
+            <tr><td><%= format.dateTime(t.created_at) %></td><td><%= t.transaction_type %></td><td><% if (t.purchase_order_id) { %><a class="text-link" href="/purchase-orders/<%= t.purchase_order_id %>"><%= t.po_number %></a><% } %><% if (t.delivery_id) { %> · <a class="text-link" href="/deliveries/<%= t.delivery_id %>"><%= t.delivery_number %></a><% } %></td><td><%= t.description %></td><td><%= t.user_name || '—' %></td><td class="align-right <%= Number(t.amount) < 0 ? 'text-good' : '' %>"><%= format.money(t.amount) %></td></tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } else { %><p class="muted">No commitments or spending have been recorded against this budget.</p><% } %>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">ORDERS</p><h2>Purchase orders charged to this budget</h2></div></div>
+    <% if (orders.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>PO</th><th>Supplier</th><th>Order date</th><th>Status</th><th class="align-right">Total</th></tr></thead>
+        <tbody><% orders.forEach((o) => { %><tr><td><a class="text-link" href="/purchase-orders/<%= o.id %>"><%= o.po_number %></a></td><td><%= o.vendor_name %></td><td><%= o.order_date %></td><td><%- include('../partials/status', { status: o.status }) %></td><td class="align-right"><%= format.money(o.total_cost) %></td></tr><% }) %></tbody>
+      </table></div>
+    <% } else { %><p class="muted">No purchase orders have been approved against this budget yet.</p><% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

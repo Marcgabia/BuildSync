@@ -1,0 +1,32 @@
+<%- include('../partials/header', { title: role ? `Edit ${role.name}` : 'Create role', activePage: 'admin' }) %>
+<% const selected = (values.permission_ids || []).map(Number); const locked = role && role.role_key === 'super_admin'; %>
+<main class="page-shell">
+  <a class="back-link" href="/admin/roles">← Back to roles</a>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">ADMINISTRATION</p><h1><%= role ? 'Edit role' : 'Create role' %></h1>
+      <p class="muted"><%= locked ? 'The Super Admin role always keeps every permission.' : 'Choose what users with this role can do.' %></p></div></div>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form action="<%= role ? `/admin/roles/${role.id}/edit` : '/admin/roles' %>" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <label>Role name *<input name="name" maxlength="100" required value="<%= values.name || '' %>"></label>
+        <label>Status<select name="is_active" <%= locked ? 'disabled' : '' %>><option value="1" <%= Number(values.is_active) !== 0 ? 'selected' : '' %>>Active</option><option value="0" <%= Number(values.is_active) === 0 ? 'selected' : '' %>>Inactive</option></select></label>
+        <% if (locked) { %><input type="hidden" name="is_active" value="1"><% } %>
+        <label class="field-wide">Description<input name="description" maxlength="500" value="<%= values.description || '' %>"></label>
+      </div>
+      <br>
+      <% groups.forEach(([module, permissions]) => { %>
+        <fieldset class="fieldset">
+          <legend><%= module %></legend>
+          <div class="checkbox-grid">
+            <% permissions.forEach((p) => { %>
+              <label><input type="checkbox" name="permission_ids" value="<%= p.id %>" <%= selected.includes(Number(p.id)) || locked ? 'checked' : '' %> <%= locked ? 'disabled' : '' %>><span><%= p.name %><small><%= p.description %></small></span></label>
+            <% }) %>
+          </div>
+        </fieldset>
+      <% }) %>
+      <div class="form-actions"><a class="button button-secondary" href="/admin/roles">Cancel</a><button class="button button-primary" type="submit"><%= role ? 'Save role' : 'Create role' %></button></div>
+    </form>
+  </section>
+</main>
+<%- include('../partials/footer') %>

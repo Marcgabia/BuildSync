@@ -1,0 +1,45 @@
+<%- include('../partials/header', { title: 'Record delivery', activePage: 'deliveries' }) %>
+<main class="page-shell">
+  <a class="back-link" href="/deliveries">← Back to deliveries</a>
+  <div class="page-heading">
+    <div><p class="eyebrow">RECEIVING</p><h1>Record delivery</h1><p class="muted">Schedule an incoming delivery, or confirm receipt right away.</p></div>
+  </div>
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+
+  <section class="panel">
+    <label class="filter-bar">Purchase order
+      <select data-navigate="/deliveries/new?po=">
+        <option value="">Choose an approved or ordered purchase order…</option>
+        <% orders.forEach((o) => { %><option value="<%= o.id %>" <%= order && Number(order.id) === Number(o.id) ? 'selected' : '' %>><%= o.po_number %> · <%= o.vendor_name %> · <%= o.status %> · due <%= o.target_date %></option><% }) %>
+      </select>
+    </label>
+    <% if (!orders.length) { %><p class="muted">No purchase orders are open for receiving. Orders must be approved first.</p><% } %>
+  </section>
+
+  <% if (order) { %>
+  <form action="/deliveries" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="purchase_order_id" value="<%= order.id %>">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow"><%= order.po_number %></p><h2><%= order.vendor_name %></h2></div><%- include('../partials/status', { status: order.status }) %></div>
+      <div class="form-grid">
+        <label>Supplier delivery reference no.<input name="reference_number" maxlength="100" placeholder="e.g. DR-12345" value="<%= values.reference_number || '' %>"></label>
+        <label>Expected delivery date<input name="expected_date" type="date" value="<%= values.expected_date || order.target_date %>"></label>
+        <label>Delivery date (for receipt)<input name="delivery_date" type="date" value="<%= values.delivery_date || '' %>"></label>
+        <label>Status (if only scheduling)<select name="status"><% statuses.forEach((s) => { %><option <%= values.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+        <label class="field-wide">Remarks<textarea name="remarks" rows="2" maxlength="5000"><%= values.remarks || '' %></textarea></label>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">ITEMS</p><h2>Quantities received</h2></div></div>
+      <%- include('../partials/receive-lines', { lines }) %>
+    </section>
+    <div class="form-actions panel">
+      <a class="button button-secondary" href="/deliveries">Cancel</a>
+      <button class="button button-secondary" type="submit" name="intent" value="schedule">Save as scheduled delivery</button>
+      <button class="button button-primary" type="submit" name="intent" value="receive" data-confirm-click="Confirm receipt? Accepted quantities will be added to inventory and cannot be received twice.">Confirm receipt</button>
+    </div>
+  </form>
+  <% } %>
+</main>
+<%- include('../partials/footer') %>

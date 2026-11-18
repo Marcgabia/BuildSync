@@ -1,0 +1,98 @@
+<%- include('../partials/header', { title: product.name, activePage: 'products' }) %>
+<% const low = Number(product.minimum_stock) > 0 && Number(product.current_stock) <= Number(product.minimum_stock); %>
+<main class="page-shell">
+  <a class="back-link" href="/products">← Back to products</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">PRODUCT #<%= product.id %></p>
+      <h1><%= product.name %></h1>
+      <p class="muted"><%= product.product_code %> · <%= product.category_name %></p>
+    </div>
+    <div class="detail-actions">
+      <%- include('../partials/status', { status: product.status }) %>
+      <% if (can('products.manage')) { %>
+        <a class="button button-secondary" href="/products/<%= product.id %>/edit">Edit product</a>
+        <% if (canDelete) { %>
+          <form action="/products/<%= product.id %>/delete" method="post" class="inline-form js-confirm" data-confirm="Delete this product permanently?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="button button-danger" type="submit">Delete</button>
+          </form>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+  <% if (low) { %><div class="alert alert-warning">Low stock: <%= product.current_stock %> <%= product.unit %> on hand, at or below the minimum of <%= product.minimum_stock %>.</div><% } %>
+
+  <section class="metric-grid">
+    <article class="metric-card"><span class="metric-label">Current stock</span><strong class="<%= low ? 'text-danger' : '' %>"><%= product.current_stock %></strong><span class="metric-note"><%= product.unit %></span></article>
+    <article class="metric-card"><span class="metric-label">Minimum stock</span><strong><%= product.minimum_stock %></strong><span class="metric-note">Low-stock alert level</span></article>
+    <article class="metric-card"><span class="metric-label">Unit price</span><strong><%= format.money(product.unit_price) %></strong><span class="metric-note">Catalog price</span></article>
+    <article class="metric-card metric-card-accent"><span class="metric-label">Stock value</span><strong><%= format.money(product.current_stock * product.unit_price) %></strong><span class="metric-note">On hand × price</span></article>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">PRODUCT INFORMATION</p><h2>Details</h2></div></div>
+      <dl class="detail-grid">
+        <div><dt>SKU</dt><dd><%= product.product_code %></dd></div>
+        <div><dt>Category</dt><dd><a class="text-link" href="/products?category=<%= product.category_id %>"><%= product.category_name %></a></dd></div>
+        <div><dt>Supplier</dt><dd><% if (product.supplier_id) { %><a class="text-link" href="/suppliers/<%= product.supplier_id %>"><%= product.supplier_name %></a><% } else { %>—<% } %></dd></div>
+        <div><dt>Unit of measurement</dt><dd><%= product.unit %></dd></div>
+        <div><dt>Date created</dt><dd><%= format.dateTime(product.created_at) %><%= product.created_by_name ? ` by ${product.created_by_name}` : '' %></dd></div>
+        <div><dt>Last updated</dt><dd><%= format.dateTime(product.updated_at) %></dd></div>
+        <div class="detail-grid-wide"><dt>Description</dt><dd><%= product.description || '—' %></dd></div>
+      </dl>
+    </section>
+    <% if (can('inventory.manage')) { %>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">INVENTORY</p><h2>Record stock adjustment</h2></div></div>
+      <p class="muted">Use for physical counts, stock received outside a purchase order, breakage, or issues. Stock can never go below zero. Purchase-order deliveries update stock automatically.</p>
+      <br>
+      <form action="/products/<%= product.id %>/adjust" method="post" class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Type *<select name="type" required><% adjustmentTypes.forEach((t) => { %><option><%= t %></option><% }) %></select></label>
+        <label>Quantity *<input name="quantity" type="number" min="1" step="1" required></label>
+        <label class="field-wide">Reason *<input name="notes" maxlength="500" required placeholder="e.g. Physical count correction"></label>
+        <div class="form-actions field-wide"><button class="button button-primary" type="submit">Record adjustment</button></div>
+      </form>
+    </section>
+    <% } %>
+  </div>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">HISTORY</p><h2>Inventory movements</h2></div></div>
+    <% if (movements.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Type</th><th class="align-right">Quantity</th><th class="align-right">Balance</th><th>Reference</th><th>By</th><th>Notes</th></tr></thead>
+        <tbody>
+          <% movements.forEach((m) => { %>
+            <tr>
+              <td><%= format.dateTime(m.created_at) %></td>
+              <td><%= m.transaction_type %></td>
+              <td class="align-right <%= m.quantity < 0 ? 'text-danger' : 'text-good' %>"><%= m.quantity > 0 ? '+' : '' %><%= m.quantity %></td>
+              <td class="align-right"><%= m.balance_after %></td>
+              <td><%= m.reference_type ? `${m.reference_type} #${m.reference_id}` : '—' %></td>
+              <td><%= m.user_name || '—' %></td>
+              <td><%= m.notes || '' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } else { %><p class="muted">No stock movements recorded yet.</p><% } %>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">PURCHASING</p><h2>Recent purchase orders</h2></div></div>
+    <% if (orders.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>PO</th><th>Supplier</th><th>Order date</th><th>Status</th><th class="align-right">Qty</th><th class="align-right">Received</th><th class="align-right">Unit price</th></tr></thead>
+        <tbody>
+          <% orders.forEach((o) => { %>
+            <tr><td><a class="text-link" href="/purchase-orders/<%= o.id %>"><%= o.po_number %></a></td><td><%= o.vendor_name %></td><td><%= o.order_date || '—' %></td><td><%- include('../partials/status', { status: o.status }) %></td><td class="align-right"><%= o.quantity %></td><td class="align-right"><%= o.received_quantity %></td><td class="align-right"><%= format.money(o.unit_price) %></td></tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } else { %><p class="muted">This product has not been ordered yet.</p><% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

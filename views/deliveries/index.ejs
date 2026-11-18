@@ -1,0 +1,63 @@
+<%- include('../partials/header', { title: 'Deliveries & receiving', activePage: 'deliveries' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">RECEIVING</p>
+      <h1>Deliveries &amp; receiving</h1>
+      <p class="muted">Record incoming deliveries against purchase orders. Only accepted quantities are added to inventory.</p>
+    </div>
+    <% if (can('deliveries.manage')) { %><a class="button button-primary" href="/deliveries/new">Record delivery <span aria-hidden="true">＋</span></a><% } %>
+  </div>
+
+  <% if (receivableOrders.length) { %>
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">AWAITING GOODS</p><h2>Open purchase orders <span class="count-badge"><%= receivableOrders.length %></span></h2></div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>PO</th><th>Supplier</th><th>Expected</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <% receivableOrders.slice(0, 8).forEach((o) => { const overdue = o.target_date < new Date().toISOString().slice(0, 10); %>
+          <tr><td><a class="table-primary" href="/purchase-orders/<%= o.id %>"><%= o.po_number %></a></td><td><%= o.vendor_name %></td><td class="<%= overdue ? 'text-danger' : '' %>"><%= o.target_date %><%= overdue ? ' · overdue' : '' %></td><td><%- include('../partials/status', { status: o.status }) %></td>
+            <td class="supplier-actions"><% if (can('deliveries.manage')) { %><a class="text-link" href="/deliveries/new?po=<%= o.id %>">Receive</a><% } %></td></tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </section>
+  <% } %>
+
+  <section class="panel">
+    <div class="section-heading">
+      <div><p class="eyebrow">HISTORY</p><h2>Delivery history <span class="count-badge"><%= pageInfo.total %></span></h2></div>
+      <% if (can('reports.export')) { %><a class="button button-secondary button-small" href="/deliveries/export.csv?q=<%= encodeURIComponent(filters.search) %>&amp;status=<%= encodeURIComponent(filters.status) %>&amp;from=<%= filters.from %>&amp;to=<%= filters.to %>">Export CSV</a><% } %>
+    </div>
+    <form class="filter-bar" action="/deliveries" method="get" role="search">
+      <label>Search<input type="search" name="q" value="<%= filters.search %>" placeholder="Delivery, reference, PO, supplier"></label>
+      <label>Status<select name="status"><option value="All">All statuses</option><% statuses.forEach((s) => { %><option <%= filters.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+      <label>From<input type="date" name="from" value="<%= filters.from %>"></label>
+      <label>To<input type="date" name="to" value="<%= filters.to %>"></label>
+      <button class="button button-secondary" type="submit">Filter</button>
+      <a class="text-link" href="/deliveries">Clear</a>
+    </form>
+    <% if (deliveries.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Delivery</th><th>Purchase order</th><th>Expected / delivered</th><th>Received by</th><th class="align-right">Accepted</th><th class="align-right">Damaged</th><th>Status</th></tr></thead>
+        <tbody>
+          <% deliveries.forEach((d) => { %>
+            <tr>
+              <td><a class="table-primary" href="/deliveries/<%= d.id %>"><%= d.delivery_number %></a><span class="table-secondary"><%= d.reference_number ? `Ref ${d.reference_number}` : 'No supplier reference' %></span></td>
+              <td><a class="text-link" href="/purchase-orders/<%= d.purchase_order_id %>"><%= d.po_number %></a><span class="table-secondary"><%= d.vendor_name %></span></td>
+              <td><%= d.expected_date || '—' %><span class="table-secondary"><%= d.delivery_date ? `Delivered ${d.delivery_date}` : 'Not yet received' %></span></td>
+              <td><%= d.received_by_name || '—' %></td>
+              <td class="align-right"><%= d.accepted_total %></td>
+              <td class="align-right <%= Number(d.damaged_total) ? 'text-danger' : '' %>"><%= d.damaged_total %></td>
+              <td><%- include('../partials/status', { status: d.status }) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+      <%- include('../partials/pagination', { pageInfo, basePath: '/deliveries', params: { q: filters.search, status: filters.status, from: filters.from, to: filters.to }, noun: 'deliveries' }) %>
+    <% } else { %>
+      <div class="empty-state"><span class="empty-icon" aria-hidden="true">↘</span><h3>No deliveries recorded</h3><p>Deliveries appear here once goods are scheduled or received against an approved purchase order.</p></div>
+    <% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

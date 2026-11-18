@@ -1,0 +1,81 @@
+<%- include('../partials/header', { title: delivery.delivery_number, activePage: 'deliveries' }) %>
+<main class="page-shell">
+  <a class="back-link" href="/deliveries">← Back to deliveries</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">DELIVERY #<%= delivery.id %></p>
+      <h1><%= delivery.delivery_number %></h1>
+      <p class="muted"><a class="text-link" href="/purchase-orders/<%= delivery.purchase_order_id %>"><%= delivery.po_number %></a> · <%= delivery.vendor_name %></p>
+    </div>
+    <div class="detail-actions"><%- include('../partials/status', { status: delivery.status }) %></div>
+  </div>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">DELIVERY INFORMATION</p><h2>Details</h2></div></div>
+    <dl class="detail-grid">
+      <div><dt>Purchase order</dt><dd><a class="text-link" href="/purchase-orders/<%= delivery.purchase_order_id %>"><%= delivery.po_number %></a> (<%= delivery.po_status %>)</dd></div>
+      <div><dt>Supplier</dt><dd><%= delivery.vendor_name %> (<%= delivery.supplier_code %>)</dd></div>
+      <div><dt>Supplier reference no.</dt><dd><%= delivery.reference_number || '—' %></dd></div>
+      <div><dt>Expected date</dt><dd><%= delivery.expected_date || delivery.target_date %></dd></div>
+      <div><dt>Delivery date</dt><dd><%= delivery.delivery_date || '—' %></dd></div>
+      <div><dt>Received by</dt><dd><%= delivery.received_by_name || '—' %><%= delivery.confirmed_at ? ` · confirmed ${format.dateTime(delivery.confirmed_at)}` : '' %></dd></div>
+      <div><dt>Recorded by</dt><dd><%= delivery.created_by_name || '—' %> · <%= format.dateTime(delivery.created_at) %></dd></div>
+      <div class="detail-grid-wide"><dt>Remarks</dt><dd><%= delivery.remarks || '—' %></dd></div>
+    </dl>
+  </section>
+
+  <% if (delivery.items.length) { %>
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">RECEIVED ITEMS</p><h2>Delivery lines</h2></div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Item</th><th class="align-right">Ordered</th><th class="align-right">Previously received</th><th class="align-right">Newly received</th><th class="align-right">Damaged</th><th class="align-right">Accepted</th><th>Remarks</th></tr></thead>
+      <tbody>
+        <% delivery.items.forEach((i) => { %>
+          <tr><td><span class="table-primary"><%= i.item_code %></span><span class="table-secondary"><%= i.description %></span></td><td class="align-right"><%= i.ordered_quantity %></td><td class="align-right"><%= i.previously_received %></td><td class="align-right"><%= i.received_quantity %></td><td class="align-right <%= i.damaged_quantity ? 'text-danger' : '' %>"><%= i.damaged_quantity %></td><td class="align-right text-good"><%= i.accepted_quantity %></td><td><%= i.remarks || '' %></td></tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </section>
+  <% } %>
+
+  <% if (open && can('deliveries.manage')) { %>
+    <form action="/deliveries/<%= delivery.id %>/receive" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <section class="panel decision-panel">
+        <div class="section-heading"><div><p class="eyebrow">CONFIRM RECEIPT</p><h2>Receive goods</h2></div>
+          <label class="inline-fields">Delivery date <input type="date" name="delivery_date" value="<%= new Date().toISOString().slice(0, 10) %>" required></label></div>
+        <%- include('../partials/receive-lines', { lines }) %>
+        <div class="form-actions"><button class="button button-primary" type="submit" data-confirm-click="Confirm receipt? Accepted quantities will be added to inventory and cannot be received twice.">Confirm receipt</button></div>
+      </section>
+    </form>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">TRACKING</p><h2>Update delivery status</h2></div></div>
+      <form action="/deliveries/<%= delivery.id %>/status" method="post" class="inline-fields">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <select name="status" aria-label="Delivery status"><% statuses.forEach((s) => { %><option <%= delivery.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select>
+        <input name="remarks" maxlength="5000" placeholder="Remarks (required when rejecting)" aria-label="Remarks">
+        <button class="button button-secondary" type="submit">Update status</button>
+      </form>
+    </section>
+  <% } %>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">DOCUMENTS</p><h2>Delivery receipts <span class="count-badge"><%= delivery.attachments.length %></span></h2></div></div>
+    <% if (delivery.attachments.length) { %>
+      <ul class="list-plain">
+        <% delivery.attachments.forEach((a) => { %>
+          <li><a class="text-link" href="/deliveries/<%= delivery.id %>/attachments/<%= a.id %>" target="_blank" rel="noopener"><%= a.original_name %></a><span class="list-meta"><%= (a.size_bytes / 1024).toFixed(0) %> KB · <%= a.uploaded_by_name || '—' %> · <%= format.dateTime(a.created_at) %></span></li>
+        <% }) %>
+      </ul>
+    <% } else { %><p class="muted">No receipts uploaded yet.</p><% } %>
+    <% if (can('deliveries.manage')) { %>
+      <br>
+      <form action="/deliveries/<%= delivery.id %>/attachments?_csrf=<%= csrfToken %>" method="post" enctype="multipart/form-data" class="inline-fields">
+        <input type="file" name="attachment" accept="application/pdf,image/png,image/jpeg" required aria-label="Delivery receipt file">
+        <button class="button button-secondary" type="submit">Upload receipt</button>
+        <span class="form-hint">PDF, PNG, or JPEG up to 5 MB. Files are stored privately.</span>
+      </form>
+    <% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

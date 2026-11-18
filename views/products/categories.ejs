@@ -1,0 +1,53 @@
+<%- include('../partials/header', { title: 'Product categories', activePage: 'products' }) %>
+<main class="page-shell">
+  <a class="back-link" href="/products">← Back to products</a>
+  <div class="page-heading">
+    <div><p class="eyebrow">CATALOG</p><h1>Product categories</h1><p class="muted">Group products for filtering and reporting. Categories in use cannot be deleted.</p></div>
+  </div>
+  <section class="panel">
+    <form class="filter-bar" action="/products/categories" method="get" role="search">
+      <label>Search<input type="search" name="q" value="<%= search %>" placeholder="Category name"></label>
+      <button class="button button-secondary" type="submit">Search</button>
+    </form>
+    <% if (categories.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Category</th><th>Description</th><th class="align-right">Products</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          <% categories.forEach((c) => { %>
+            <tr>
+              <td class="table-primary"><%= c.name %></td>
+              <td><%= c.description || '—' %></td>
+              <td class="align-right"><a class="text-link" href="/products?category=<%= c.id %>"><%= c.product_count %> product(s)</a></td>
+              <td><%- include('../partials/status', { status: Number(c.is_active) ? 'Active' : 'Inactive' }) %></td>
+              <td class="supplier-actions">
+                <% if (can('products.manage')) { %>
+                  <a class="text-link" href="/products/categories/<%= c.id %>/edit">Edit</a>
+                  <% if (!Number(c.product_count)) { %>
+                    <form action="/products/categories/<%= c.id %>/delete" method="post" class="inline-form js-confirm" data-confirm="Delete this category?">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="text-button text-button-danger" type="submit">Delete</button>
+                    </form>
+                  <% } %>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } else { %>
+      <div class="empty-state"><h3>No categories yet</h3><p>Add categories such as Cement, Electrical, Plumbing, or Hardware.</p></div>
+    <% } %>
+  </section>
+  <% if (can('products.manage')) { %>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">NEW</p><h2>Add a category</h2></div></div>
+    <form action="/products/categories" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Category name *<input name="name" maxlength="120" required></label>
+      <label>Description<input name="description" maxlength="500"></label>
+      <div class="form-actions field-wide"><button class="button button-primary" type="submit">Save category</button></div>
+    </form>
+  </section>
+  <% } %>
+</main>
+<%- include('../partials/footer') %>

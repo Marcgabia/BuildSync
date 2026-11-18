@@ -1,0 +1,184 @@
+<%- include('partials/header', { title: 'Dashboard', activePage: 'dashboard' }) %>
+<%
+  const can = typeof locals.can === 'function' ? locals.can : () => true;
+  const money = (v) => Number(v || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 });
+  const compact = (v) => {
+    const n = Number(v || 0);
+    if (n >= 1e6) return `₱${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
+    if (n >= 1e3) return `₱${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K`;
+    return `₱${Math.round(n)}`;
+  };
+  const s = locals.stats || {
+    active_suppliers: supplierCounts.active, total_suppliers: supplierCounts.total, total_products: 0, total_requisitions: 0,
+    total_orders: orderCounts.total, pending_requisitions: 0, pending_orders: 0, ongoing_deliveries: 0,
+    total_expenses: orderCounts.committed, awaiting_value: orderCounts.awaiting_approval, budget: { count: 0, remaining: 0, allocated: 0 }
+  };
+  const monthly = locals.monthly || [];
+  const statusCounts = locals.statusCounts || [];
+  const activity = locals.activity || [];
+  const upcoming = locals.upcoming || [];
+  const alerts = locals.alerts || { overdue: 0, upcoming: 0, lowStock: [], budgets: [] };
+%>
+<main class="page-shell">
+  <section class="welcome-panel">
+    <div>
+      <p class="eyebrow">Mindoro Tech · Calapan City</p>
+      <h1><%= locals.currentUser ? `Welcome back, ${currentUser.fullName.split(/\s+/)[0]}` : 'Procurement, in sync.' %></h1>
+      <p class="muted">Procurement, in sync. A live view of your suppliers, requisitions, purchase orders, deliveries, and budgets.</p>
+    </div>
+    <div class="welcome-actions">
+      <% if (can('purchase_orders.manage')) { %><a class="button button-light" href="/purchase-orders/new">Create purchase order <span aria-hidden="true">↗</span></a><% } %>
+      <% if (can('requisitions.create')) { %><a class="text-link" href="/requisitions/new">New requisition <span aria-hidden="true">→</span></a><% } %>
+      <% if (can('suppliers.view', 'suppliers.manage')) { %><a class="text-link" href="/suppliers">Manage suppliers <span aria-hidden="true">→</span></a><% } %>
+    </div>
+  </section>
+
+  <section class="metric-grid" aria-label="Procurement overview">
+    <article class="metric-card">
+      <span class="metric-label">Active suppliers</span>
+      <strong><%= s.active_suppliers || 0 %></strong>
+      <span class="metric-note"><%= s.total_suppliers || 0 %> registered suppliers</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Products</span>
+      <strong><%= s.total_products || 0 %></strong>
+      <span class="metric-note"><%= alerts.lowStock.length %> at or below minimum stock</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Purchase requisitions</span>
+      <strong><%= s.total_requisitions || 0 %></strong>
+      <span class="metric-note">All-time requests</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Purchase orders</span>
+      <strong><%= s.total_orders || 0 %></strong>
+      <span class="metric-note">All-time orders recorded</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Pending approvals</span>
+      <strong><%= Number(s.pending_requisitions || 0) + Number(s.pending_orders || 0) %></strong>
+      <span class="metric-note"><%= s.pending_requisitions || 0 %> requisitions · <%= s.pending_orders || 0 %> orders (<%= money(s.awaiting_value) %>)</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Ongoing deliveries</span>
+      <strong><%= s.ongoing_deliveries || 0 %></strong>
+      <span class="metric-note">Orders placed and awaiting goods</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Procurement expenses</span>
+      <strong><%= money(s.total_expenses) %></strong>
+      <span class="metric-note">Approved, ordered, and completed orders</span>
+    </article>
+    <article class="metric-card metric-card-accent">
+      <span class="metric-label">Remaining budget</span>
+      <strong><%= s.budget.count ? money(s.budget.remaining) : '—' %></strong>
+      <span class="metric-note"><%= s.budget.count ? `of ${money(s.budget.allocated)} in ${s.budget.count} current budget(s)` : 'No active budget covers today' %></span>
+    </article>
+  </section>
+
+  <div class="grid-3-1">
+    <section class="panel">
+      <div class="section-heading">
+        <div><p class="eyebrow">SPENDING TREND</p><h2>Monthly procurement expenses</h2></div>
+        <span class="form-hint">Order value of approved and later orders, by order date</span>
+      </div>
+      <% if (monthly.length && monthly.some((m) => m.total > 0)) { %>
+        <%- include('partials/column-chart', {
+          data: monthly.map((m) => ({ label: m.label, sublabel: String(m.year), value: m.total, display: money(m.total) })),
+          ariaLabel: 'Monthly procurement expenses for the last 12 months', valueFormat: compact
+        }) %>
+        <details class="chart-table"><summary>View as table</summary>
+          <div class="table-wrap"><table><thead><tr><th>Month</th><th class="align-right">Expenses</th></tr></thead><tbody>
+            <% monthly.forEach((m) => { %><tr><td><%= m.month %></td><td class="align-right"><%= money(m.total) %></td></tr><% }) %>
+          </tbody></table></div>
+        </details>
+      <% } else { %>
+        <div class="empty-state"><h3>No approved spending yet</h3><p>Monthly expenses appear once purchase orders are approved.</p></div>
+      <% } %>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">ORDER PIPELINE</p><h2>Orders by status</h2></div></div>
+      <% if (statusCounts.some((r) => r.total > 0)) { %>
+        <%- include('partials/bar-list', { rows: statusCounts.map((r) => ({ label: r.status, value: r.total })), ariaLabel: 'Purchase orders by status' }) %>
+      <% } else { %>
+        <div class="empty-state"><p>No purchase orders yet.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">NEEDS ATTENTION</p><h2>Notifications &amp; alerts</h2></div></div>
+      <ul class="list-plain alert-list">
+        <% const pendingTotal = Number(s.pending_requisitions || 0) + Number(s.pending_orders || 0); %>
+        <% if (pendingTotal) { %><li><span class="alert-dot"></span><span><strong><%= pendingTotal %> request(s) awaiting approval.</strong> <% if (can('requisitions.approve', 'purchase_orders.approve')) { %><a class="text-link" href="/approvals">Review</a><% } %></span></li><% } %>
+        <% if (alerts.overdue) { %><li><span class="alert-dot critical"></span><span><strong><%= alerts.overdue %> overdue deliver<%= alerts.overdue === 1 ? 'y' : 'ies' %>.</strong> <a class="text-link" href="/purchase-orders?status=Ordered">View orders</a></span></li><% } %>
+        <% if (alerts.upcoming) { %><li><span class="alert-dot"></span><span><%= alerts.upcoming %> deliver<%= alerts.upcoming === 1 ? 'y is' : 'ies are' %> due within <%= locals.upcomingDays || 7 %> days.</span></li><% } %>
+        <% alerts.lowStock.forEach((p) => { %><li><span class="alert-dot critical"></span><span>Low stock: <a class="text-link" href="/products/<%= p.id %>"><%= p.name %></a> — <%= p.current_stock %> <%= p.unit %> on hand (minimum <%= p.minimum_stock %>)</span></li><% }) %>
+        <% alerts.budgets.forEach((b) => { %><li><span class="alert-dot <%= b.utilization >= 100 ? 'critical' : '' %>"></span><span>Budget <a class="text-link" href="/budgets/<%= b.id %>"><%= b.name %></a> is at <%= b.utilization.toFixed(1) %>% (threshold <%= Number(b.warning_threshold) %>%)</span></li><% }) %>
+        <% if (!pendingTotal && !alerts.overdue && !alerts.upcoming && !alerts.lowStock.length && !alerts.budgets.length) { %><li><span class="alert-dot ok"></span><span>All clear — no pending approvals, overdue deliveries, low stock, or budget warnings.</span></li><% } %>
+      </ul>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">SCHEDULE</p><h2>Upcoming deliveries</h2></div></div>
+      <% if (upcoming.length) { %>
+        <ul class="list-plain">
+          <% upcoming.forEach((o) => { %>
+            <li>
+              <span><a class="table-primary" href="/purchase-orders/<%= o.id %>"><%= o.po_number %></a><span class="list-meta"><%= o.vendor_name %> · <%= o.status %></span></span>
+              <span class="align-right"><strong><%= o.target_date %></strong><span class="list-meta <%= o.days_left < 0 ? 'text-danger' : '' %>"><br><%= o.days_left < 0 ? `${-o.days_left} day(s) overdue` : o.days_left === 0 ? 'Due today' : `in ${o.days_left} day(s)` %></span></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="empty-state"><p>No approved orders are awaiting delivery.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">LATEST ACTIVITY</p><h2>Recent activities</h2></div></div>
+      <% if (activity.length) { %>
+        <ul class="list-plain">
+          <% activity.forEach((a) => { %>
+            <li><span><span class="table-secondary"><%= a.kind %></span><% if (a.kind !== 'Supplier added' || can('suppliers.view', 'suppliers.manage')) { %><a class="table-primary" href="<%= a.link %>"><%= a.label %></a><% } else { %><span class="table-primary"><%= a.label %></span><% } %></span><span class="list-meta align-right"><%= String(a.at).slice(0, 16) %><%= a.actor ? ` · ${a.actor}` : '' %></span></li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="empty-state"><p>Activity will appear as requisitions, approvals, suppliers, and deliveries are recorded.</p></div>
+      <% } %>
+    </section>
+    <section class="panel">
+      <div class="section-heading">
+        <div><p class="eyebrow">ORDER REGISTER</p><h2>Recent purchase orders</h2></div>
+        <a class="text-link" href="/purchase-orders">View all <span aria-hidden="true">→</span></a>
+      </div>
+      <% if (recentOrders.length) { %>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>PO number</th><th>Supplier</th><th>Status</th><th class="align-right">Total</th></tr></thead>
+            <tbody>
+              <% recentOrders.forEach((order) => { %>
+                <tr>
+                  <td class="table-primary"><% if (order.id) { %><a href="/purchase-orders/<%= order.id %>"><%= order.po_number %></a><% } else { %><%= order.po_number %><% } %></td>
+                  <td><%= order.vendor_name %></td>
+                  <td><span class="status-pill"><%= order.status %></span></td>
+                  <td class="align-right"><%= Number(order.total_cost).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">↗</span>
+          <h3>Your procurement activity starts here</h3>
+          <p>Add a supplier, then create a purchase order to see activity on your dashboard.</p>
+          <% if (can('suppliers.manage')) { %><a class="button button-primary" href="/suppliers">Add your first supplier</a><% } %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</main>
+<%- include('partials/footer') %>

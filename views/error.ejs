@@ -1,0 +1,11 @@
+<%- include('partials/header', { title, activePage: '' }) %>
+<main class="page-shell page-narrow">
+  <section class="panel empty-state error-state">
+    <span class="empty-icon" aria-hidden="true">!</span>
+    <p class="eyebrow">BUILDSYNC</p>
+    <h1><%= title %></h1>
+    <p><%= message %></p>
+    <a class="button button-primary" href="/">Return to overview</a>
+  </section>
+</main>
+<%- include('partials/footer') %>

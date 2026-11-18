@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      # Local PC: 127.0.0.1:3000. On EC2 set APP_BIND_ADDRESS=0.0.0.0 and APP_PORT=80 in .env.
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      # Only set this if you later put a reverse proxy / AWS load balancer in front of the app.
+      TRUST_PROXY: ${TRUST_PROXY:-}
+      DATABASE_HOST: ${DATABASE_HOST:-db}
+      DATABASE_PORT: ${DATABASE_PORT:-3306}
+      DATABASE_NAME: ${DATABASE_NAME:-buildsync_db}
+      DATABASE_USER: ${DATABASE_USER:-buildsync}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-buildsync_dev_password}
+    volumes:
+      - uploads:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DATABASE_NAME:-buildsync_db}
+      MYSQL_USER: ${DATABASE_USER:-buildsync}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-buildsync_dev_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-buildsync_root_dev_password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  mysql-data:
+  uploads:

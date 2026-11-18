@@ -1,0 +1,44 @@
+<%- include('../partials/header', { title: 'Users', activePage: 'admin' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">ADMINISTRATION</p><h1>User &amp; role management</h1><p class="muted">Create accounts, assign roles, and control access.</p></div>
+    <a class="button button-primary" href="/admin/users/new">Add user <span aria-hidden="true">＋</span></a>
+  </div>
+  <%- include('tabs', { tab: 'users' }) %>
+  <section class="panel">
+    <form class="filter-bar" action="/admin/users" method="get">
+      <label>Search<input type="search" name="q" value="<%= filters.search %>" placeholder="Name or email"></label>
+      <label>Status<select name="status"><option value="All">All statuses</option><% statuses.forEach((s) => { %><option <%= filters.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+      <label>Role<select name="role"><option value="">All roles</option><% roles.forEach((r) => { %><option value="<%= r.id %>" <%= filters.roleId === Number(r.id) ? 'selected' : '' %>><%= r.name %></option><% }) %></select></label>
+      <button class="button button-secondary" type="submit">Filter</button>
+      <a class="text-link" href="/admin/users">Clear</a>
+    </form>
+    <% if (users.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>User</th><th>Department</th><th>Roles</th><th>Last sign-in</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          <% users.forEach((u) => { %>
+            <tr>
+              <td><span class="table-primary"><%= u.full_name %></span><span class="table-secondary"><%= u.email %></span></td>
+              <td><%= u.department_name || '—' %></td>
+              <td><%= u.role_names || '—' %></td>
+              <td><%= format.dateTime(u.last_login_at) %></td>
+              <td><%- include('../partials/status', { status: u.status }) %></td>
+              <td class="supplier-actions">
+                <a class="text-link" href="/admin/users/<%= u.id %>/edit">Edit</a>
+                <% if (Number(u.id) !== currentUser.id) { %>
+                  <form action="/admin/users/<%= u.id %>/toggle" method="post" class="inline-form js-confirm" data-confirm="<%= u.status === 'Active' ? 'Deactivate this user? They will be signed out.' : 'Activate this user?' %>">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="text-button <%= u.status === 'Active' ? 'text-button-danger' : '' %>" type="submit"><%= u.status === 'Active' ? 'Deactivate' : u.status === 'Pending' ? 'Approve' : 'Activate' %></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+      <%- include('../partials/pagination', { pageInfo, basePath: '/admin/users', params: { q: filters.search, status: filters.status, role: filters.roleId }, noun: 'users' }) %>
+    <% } else { %><div class="empty-state"><p>No users match these filters.</p></div><% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

@@ -1,35 +1,25 @@
 const express = require('express');
+const { createPurchaseOrderController } = require('../controllers/purchaseOrderController');
+const { requirePermission } = require('../middleware/auth');
+
 const router = express.Router();
-const db = require('../database');
+const controller = createPurchaseOrderController();
+const canView = requirePermission('purchase_orders.view', 'purchase_orders.manage', 'purchase_orders.approve');
+const canManage = requirePermission('purchase_orders.manage');
+const canManageOrApprove = requirePermission('purchase_orders.manage', 'purchase_orders.approve');
 
-// Get all POs
-router.get('/', (req, res) => {
-  const query = `SELECT po.*, s.vendor_name FROM purchase_orders po JOIN suppliers s ON po.supplier_id = s.id`;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send("Database error.");
-    }
-    db.all("SELECT * FROM suppliers", [], (err2, suppliers) => {
-      res.render('purchase-orders', { pos: rows, suppliers: suppliers });
-    });
-  });
-});
-
-// Create PO
-router.post('/add', (req, res) => {
-  const { po_number, supplier_id, item_sku, description, quantity_ordered, unit_cost, target_date } = req.body;
-  const total_cost = quantity_ordered * unit_cost;
-
-  const query = `INSERT INTO purchase_orders (po_number, supplier_id, item_sku, description, quantity_ordered, unit_cost, total_cost, status, target_date) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Approval', ?)`;
-
-  db.run(query, [po_number, supplier_id, item_sku, description, quantity_ordered, unit_cost, total_cost, target_date], (err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send("Error creating PO.");
-    }
-    res.redirect('/purchase-orders');
-  });
-});
+router.get('/', canView, controller.list);
+router.get('/export.csv', canView, requirePermission('reports.export'), controller.exportCsv);
+router.get('/new', canManage, controller.newForm);
+router.post('/', canManage, controller.store);
+router.post('/add', canManage, controller.create);
+router.get('/:id', canView, controller.view);
+router.get('/:id/print', canView, controller.print);
+router.get('/:id/edit', canManage, controller.editForm);
+router.post('/:id/edit', canManage, controller.update);
+router.post('/:id/submit', canManage, controller.submit);
+router.post('/:id/mark-ordered', canManage, controller.markOrdered);
+router.post('/:id/cancel', canManageOrApprove, controller.cancel);
+router.post('/:id/status', canManageOrApprove, controller.updateStatus);
 
 module.exports = router;

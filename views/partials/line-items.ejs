@@ -1,0 +1,36 @@
+<%
+  // Shared line-item editor. Expects: products, items [{product_id, quantity, unit_price, description}], priceLabel
+  const rows = items && items.length ? items : [{}];
+%>
+<div class="table-wrap js-line-items">
+  <table class="line-items">
+    <thead><tr><th class="col-product">Product *</th><th class="col-desc">Description</th><th class="col-qty">Quantity *</th><th class="col-price"><%= priceLabel %> *</th><th class="col-total">Subtotal</th><th class="col-remove"><span class="sr-only">Remove</span></th></tr></thead>
+    <tbody>
+      <% rows.forEach((item) => { %>
+      <tr>
+        <td class="col-product"><select name="product_id" aria-label="Product"><option value="">Choose a product</option>
+          <% products.forEach((p) => { %><option value="<%= p.id %>" data-price="<%= Number(p.unit_price).toFixed(2) %>" <%= String(item.product_id || '') === String(p.id) ? 'selected' : '' %>><%= p.name %> · <%= p.product_code %> (<%= p.unit %>)</option><% }) %>
+        </select></td>
+        <td class="col-desc"><input name="item_description" maxlength="500" aria-label="Description" placeholder="Optional details" value="<%= item.description || '' %>"></td>
+        <td class="col-qty"><input name="quantity" type="number" min="1" step="1" aria-label="Quantity" value="<%= item.quantity || 1 %>"></td>
+        <td class="col-price"><input name="unit_price" type="number" min="0" step="0.01" aria-label="<%= priceLabel %>" value="<%= item.unit_price === undefined || item.unit_price === null ? '' : item.unit_price %>" <% if (item.unit_price) { %>data-touched="1"<% } %>></td>
+        <td class="col-total js-line-total">₱0.00</td>
+        <td class="col-remove"><button class="icon-button js-remove-line" type="button" aria-label="Remove line">×</button></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <template>
+    <tr>
+      <td class="col-product"><select name="product_id" aria-label="Product"><option value="">Choose a product</option>
+        <% products.forEach((p) => { %><option value="<%= p.id %>" data-price="<%= Number(p.unit_price).toFixed(2) %>"><%= p.name %> · <%= p.product_code %> (<%= p.unit %>)</option><% }) %>
+      </select></td>
+      <td class="col-desc"><input name="item_description" maxlength="500" aria-label="Description" placeholder="Optional details"></td>
+      <td class="col-qty"><input name="quantity" type="number" min="1" step="1" aria-label="Quantity" value="1"></td>
+      <td class="col-price"><input name="unit_price" type="number" min="0" step="0.01" aria-label="<%= priceLabel %>"></td>
+      <td class="col-total js-line-total">₱0.00</td>
+      <td class="col-remove"><button class="icon-button js-remove-line" type="button" aria-label="Remove line">×</button></td>
+    </tr>
+  </template>
+</div>
+<button class="button button-secondary button-small js-add-line" type="button">＋ Add line</button>

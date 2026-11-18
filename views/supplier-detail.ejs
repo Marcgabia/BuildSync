@@ -1,0 +1,73 @@
+<%- include('partials/header', { title: 'Supplier details', activePage: 'suppliers' }) %>
+<% const can = typeof locals.can === 'function' ? locals.can : () => true;
+   const perf = supplier.performance || {};
+   const score = (v) => (v === null || v === undefined ? 'Not enough data' : `${v.toFixed(1)} / 5`); %>
+<main class="page-shell">
+  <a class="back-link" href="/suppliers">← Back to suppliers</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">SUPPLIER PROFILE</p>
+      <h1><%= supplier.vendor_name %></h1>
+      <p class="muted">Supplier ID #<%= supplier.id %> · code <%= supplier.supplier_code %></p>
+    </div>
+    <div class="detail-actions">
+      <span class="status-pill <%= supplier.status === 'Active' ? 'status-active' : supplier.status === 'Inactive' ? 'status-inactive' : 'status-pending' %>"><%= supplier.status %></span>
+      <% if (can('suppliers.manage')) { %><a class="button button-secondary" href="/suppliers/<%= supplier.id %>/edit">Edit supplier</a><% } %>
+    </div>
+  </div>
+
+  <section class="metric-grid" aria-label="Supplier performance">
+    <article class="metric-card"><span class="metric-label">Delivery timeliness</span><strong><%= score(perf.timeliness) %></strong><span class="metric-note"><%= perf.onTime || 0 %> of <%= perf.deliveries || 0 %> deliveries on time</span></article>
+    <article class="metric-card"><span class="metric-label">Product quality</span><strong><%= score(perf.quality) %></strong><span class="metric-note"><%= perf.accepted || 0 %> of <%= perf.received || 0 %> units accepted</span></article>
+    <article class="metric-card"><span class="metric-label">Service reliability</span><strong><%= score(perf.reliability) %></strong><span class="metric-note">Evaluator rating on the profile</span></article>
+    <article class="metric-card metric-card-accent"><span class="metric-label">Overall rating</span><strong><%= score(perf.overall) %></strong><span class="metric-note">Average of available scores</span></article>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading">
+      <div><p class="eyebrow">SUPPLIER INFORMATION</p><h2>Contact and terms</h2></div>
+    </div>
+    <dl class="detail-grid">
+      <div><dt>Contact person</dt><dd><%= supplier.key_account_manager %></dd></div>
+      <div><dt>Email address</dt><dd><a class="text-link" href="mailto:<%= supplier.email %>"><%= supplier.email %></a></dd></div>
+      <div><dt>Phone number</dt><dd><%= supplier.contact_number %></dd></div>
+      <div><dt>Supplier category</dt><dd><%= supplier.material_category %></dd></div>
+      <div><dt>Tax identification number</dt><dd><%= supplier.tax_id || '—' %></dd></div>
+      <div><dt>Credit terms</dt><dd><%= supplier.credit_terms %> days</dd></div>
+      <div><dt>Delivery lead time</dt><dd><%= supplier.delivery_lead_time %> days</dd></div>
+      <div><dt>Date registered</dt><dd><%= supplier.created_at %></dd></div>
+      <div class="detail-grid-wide"><dt>Business address</dt><dd><%= supplier.warehouse_address %></dd></div>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading">
+      <div><p class="eyebrow">TRANSACTION HISTORY</p><h2>Purchase orders <span class="count-badge"><%= supplier.purchaseOrders.length %></span></h2></div>
+    </div>
+    <% if (supplier.purchaseOrders.length) { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>PO number</th><th>Items</th><th>Order date</th><th>Expected</th><th>Status</th><th class="align-right">Total</th></tr></thead>
+          <tbody>
+            <% supplier.purchaseOrders.forEach((order) => { %>
+              <tr>
+                <td class="table-primary"><% if (order.id) { %><a href="/purchase-orders/<%= order.id %>"><%= order.po_number %></a><% } else { %><%= order.po_number %><% } %></td>
+                <td><span class="table-primary"><%= order.item_sku %></span><span class="table-secondary"><%= order.description %></span></td>
+                <td><%= order.order_date || String(order.created_at).slice(0, 10) %></td>
+                <td><%= order.target_date %></td>
+                <td><span class="status-pill"><%= order.status %></span></td>
+                <td class="align-right"><%= Number(order.total_cost).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="empty-state">
+        <h3>No purchase history yet</h3>
+        <p>Purchase orders for this supplier will appear here.</p>
+      </div>
+    <% } %>
+  </section>
+</main>
+<%- include('partials/footer') %>

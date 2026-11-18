@@ -1,10 +1,16 @@
 {
   "name": "buildsync-procurement",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Procurement dashboard for suppliers and purchase orders",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "user:reset-password": "node scripts/reset-password.js",
+    "user:list": "node scripts/reset-password.js --list"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +19,7 @@
   "dependencies": {
     "ejs": "^7.0.2",
     "express": "^5.3.0",
-    "sqlite3": "^6.0.1"
+    "multer": "^2.5.0",
+    "mysql2": "^3.24.6"
   }
 }

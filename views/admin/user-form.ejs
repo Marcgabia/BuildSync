@@ -1,0 +1,42 @@
+<%- include('../partials/header', { title: user ? `Edit ${user.full_name}` : 'Add user', activePage: 'admin' }) %>
+<% const selectedRoles = (values.role_ids || []).map(Number); %>
+<main class="page-shell page-narrow">
+  <a class="back-link" href="/admin/users">← Back to users</a>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">ADMINISTRATION</p><h1><%= user ? 'Edit user' : 'Add user' %></h1>
+      <p class="muted"><%= user ? `Last sign-in: ${format.dateTime(user.last_login_at)}` : 'The user must change the temporary password at first sign-in.' %></p></div></div>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form action="<%= user ? `/admin/users/${user.id}/edit` : '/admin/users' %>" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <label>Full name *<input name="full_name" maxlength="150" required value="<%= values.full_name || '' %>"></label>
+        <label>Email address *<input name="email" type="email" maxlength="254" required value="<%= values.email || '' %>"></label>
+        <label>Department<select name="department_id"><option value="">No department</option><% departments.forEach((d) => { %><option value="<%= d.id %>" <%= String(values.department_id || '') === String(d.id) ? 'selected' : '' %>><%= d.name %></option><% }) %></select></label>
+        <label>Status<select name="status"><% statuses.forEach((s) => { %><option <%= (values.status || 'Active') === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+        <% if (!user) { %><%- include('../partials/password-input', { id: 'temp-password', name: 'password', label: 'Temporary password *', autocomplete: 'new-password', minlength: 10, wide: true, hint: 'At least 10 characters with a letter and a number.' }) %><% } %>
+      </div>
+      <br>
+      <fieldset class="fieldset">
+        <legend>Roles *</legend>
+        <div class="checkbox-grid">
+          <% roles.forEach((r) => { %>
+            <label><input type="checkbox" name="role_ids" value="<%= r.id %>" <%= selectedRoles.includes(Number(r.id)) ? 'checked' : '' %>><span><%= r.name %><%= Number(r.is_active) ? '' : ' (inactive)' %><small><%= r.description || '' %></small></span></label>
+          <% }) %>
+        </div>
+      </fieldset>
+      <div class="form-actions"><a class="button button-secondary" href="/admin/users">Cancel</a><button class="button button-primary" type="submit"><%= user ? 'Save changes' : 'Create user' %></button></div>
+    </form>
+  </section>
+
+  <% if (user) { %>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">SECURITY</p><h2>Reset password</h2></div></div>
+    <form action="/admin/users/<%= user.id %>/reset-password" method="post" class="inline-fields js-confirm" data-confirm="Reset this user's password? They will be signed out of all sessions.">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/password-input', { id: 'reset-password', name: 'password', label: 'New temporary password', autocomplete: 'new-password', minlength: 10, placeholder: 'New temporary password', ariaOnly: true }) %>
+      <button class="button button-warning" type="submit">Reset password</button>
+    </form>
+  </section>
+  <% } %>
+</main>
+<%- include('../partials/footer') %>

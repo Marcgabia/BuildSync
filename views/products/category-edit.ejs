@@ -1,0 +1,15 @@
+<%- include('../partials/header', { title: 'Edit category', activePage: 'products' }) %>
+<main class="page-shell page-narrow">
+  <a class="back-link" href="/products/categories">← Back to categories</a>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">CATALOG</p><h1>Edit category</h1></div></div>
+    <form action="/products/categories/<%= category.id %>/edit" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Category name *<input name="name" maxlength="120" required value="<%= category.name %>"></label>
+      <label>Status<select name="is_active"><option value="1" <%= Number(category.is_active) ? 'selected' : '' %>>Active</option><option value="0" <%= Number(category.is_active) ? '' : 'selected' %>>Inactive</option></select></label>
+      <label class="field-wide">Description<input name="description" maxlength="500" value="<%= category.description || '' %>"></label>
+      <div class="form-actions field-wide"><a class="button button-secondary" href="/products/categories">Cancel</a><button class="button button-primary" type="submit">Save changes</button></div>
+    </form>
+  </section>
+</main>
+<%- include('../partials/footer') %>

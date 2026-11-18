@@ -1,0 +1,132 @@
+<%- include('../partials/header', { title: order.po_number, activePage: 'purchase-orders' }) %>
+<% const totalOrdered = order.items.reduce((s, i) => s + Number(i.quantity), 0);
+   const totalReceived = order.items.reduce((s, i) => s + Number(i.received_quantity), 0); %>
+<main class="page-shell">
+  <a class="back-link" href="/purchase-orders">← Back to purchase orders</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">PURCHASE ORDER</p>
+      <h1><%= order.po_number %></h1>
+      <p class="muted"><%= order.vendor_name %> · created <%= format.dateTime(order.created_at) %><%= order.created_by_name ? ` by ${order.created_by_name}` : '' %></p>
+    </div>
+    <div class="detail-actions">
+      <%- include('../partials/status', { status: order.status }) %>
+      <a class="button button-secondary" href="/purchase-orders/<%= order.id %>/print">Print / PDF</a>
+      <% if (order.status === 'Draft' && can('purchase_orders.manage')) { %>
+        <a class="button button-secondary" href="/purchase-orders/<%= order.id %>/edit">Edit</a>
+        <form action="/purchase-orders/<%= order.id %>/submit" method="post" class="inline-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="button button-primary" type="submit">Submit for approval</button>
+        </form>
+      <% } %>
+      <% if (order.status === 'Approved' && can('purchase_orders.manage')) { %>
+        <form action="/purchase-orders/<%= order.id %>/mark-ordered" method="post" class="inline-form js-confirm" data-confirm="Confirm that this order has been sent to the supplier?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="button button-primary" type="submit">Mark as ordered</button>
+        </form>
+      <% } %>
+      <% if (receivable && can('deliveries.manage')) { %><a class="button button-primary" href="/deliveries/new?po=<%= order.id %>">Record delivery</a><% } %>
+    </div>
+  </div>
+
+  <% if (decision.allowed) { %>
+    <section class="panel decision-panel">
+      <div class="section-heading"><div><p class="eyebrow">YOUR DECISION</p><h2>Approval level <%= decision.level %> of <%= decision.levels %></h2></div></div>
+      <form action="/approvals/purchase-orders/<%= order.id %>" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="form-grid"><label class="field-wide">Comments<textarea name="comments" rows="2" maxlength="2000" placeholder="Required when rejecting or returning"></textarea></label></div>
+        <div class="decision-actions">
+          <button class="button button-primary" type="submit" name="decision" value="approve">Approve</button>
+          <button class="button button-warning" type="submit" name="decision" value="return">Return to draft</button>
+          <button class="button button-danger" type="submit" name="decision" value="reject" data-confirm-click="Reject and cancel this purchase order?">Reject</button>
+        </div>
+      </form>
+    </section>
+  <% } else if (decision.reason) { %>
+    <div class="alert alert-warning"><%= decision.reason %></div>
+  <% } %>
+
+  <section class="metric-grid">
+    <article class="metric-card"><span class="metric-label">Total amount</span><strong><%= format.money(order.total_cost) %></strong><span class="metric-note">Subtotal <%= format.money(order.subtotal) %></span></article>
+    <article class="metric-card"><span class="metric-label">Expected delivery</span><strong><%= order.target_date %></strong><span class="metric-note">Ordered <%= order.order_date || '—' %></span></article>
+    <article class="metric-card"><span class="metric-label">Received</span><strong><%= totalReceived %> / <%= totalOrdered %></strong><span class="metric-note">Accepted units</span></article>
+    <article class="metric-card metric-card-accent"><span class="metric-label">Budget</span><strong><%= order.budget_name || '—' %></strong><span class="metric-note"><%= order.department_name || 'No department' %></span></article>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">ORDER INFORMATION</p><h2>Details</h2></div></div>
+    <dl class="detail-grid">
+      <div><dt>Supplier</dt><dd><a class="text-link" href="/suppliers/<%= order.supplier_id %>"><%= order.vendor_name %></a> (<%= order.supplier_code %>)</dd></div>
+      <div><dt>Related requisition</dt><dd><% if (order.requisition_id) { %><a class="text-link" href="/requisitions/<%= order.requisition_id %>"><%= order.requisition_number %></a><% } else { %>—<% } %></dd></div>
+      <div><dt>Created by</dt><dd><%= order.created_by_name || '—' %></dd></div>
+      <div><dt>Approved by</dt><dd><%= order.approved_by_name ? `${order.approved_by_name} on ${format.dateTime(order.approved_at)}` : '—' %></dd></div>
+      <div><dt>Ordered at</dt><dd><%= format.dateTime(order.ordered_at) %></dd></div>
+      <div><dt>Completed at</dt><dd><%= format.dateTime(order.completed_at) %></dd></div>
+      <% if (order.cancel_reason) { %><div class="detail-grid-wide"><dt>Cancellation reason</dt><dd class="text-danger"><%= order.cancel_reason %></dd></div><% } %>
+      <% if (order.notes) { %><div class="detail-grid-wide"><dt>Notes</dt><dd><%= order.notes %></dd></div><% } %>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">LINE ITEMS</p><h2>Products <span class="count-badge"><%= order.items.length %></span></h2></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Item</th><th class="align-right">Qty</th><th class="align-right">Received</th><th class="align-right">Damaged</th><th class="align-right">Unit price</th><th class="align-right">Line total</th></tr></thead>
+        <tbody>
+          <% order.items.forEach((item) => { %>
+            <tr>
+              <td><%= item.line_no %></td>
+              <td><span class="table-primary"><%= item.product_name || item.item_code %></span><span class="table-secondary"><%= item.item_code %> · <%= item.description %></span></td>
+              <td class="align-right"><%= item.quantity %> <%= item.unit || '' %></td>
+              <td class="align-right <%= Number(item.received_quantity) >= Number(item.quantity) ? 'text-good' : '' %>"><%= item.received_quantity %></td>
+              <td class="align-right"><%= item.damaged_quantity %></td>
+              <td class="align-right"><%= format.money(item.unit_price) %></td>
+              <td class="align-right"><%= format.money(item.line_total) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="6" class="align-right">Subtotal</td><td class="align-right"><%= format.money(order.subtotal) %></td></tr>
+          <tr><td colspan="6" class="align-right">Discount</td><td class="align-right">−<%= format.money(order.discount_amount) %></td></tr>
+          <tr><td colspan="6" class="align-right">Tax (<%= Number(order.tax_rate) %>%)</td><td class="align-right"><%= format.money(order.tax_amount) %></td></tr>
+          <tr><td colspan="6" class="align-right">Total</td><td class="align-right"><%= format.money(order.total_cost) %></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">RECEIVING</p><h2>Deliveries <span class="count-badge"><%= order.deliveries.length %></span></h2></div></div>
+      <% if (order.deliveries.length) { %>
+        <ul class="list-plain">
+          <% order.deliveries.forEach((d) => { %>
+            <li><span><a class="table-primary" href="/deliveries/<%= d.id %>"><%= d.delivery_number %></a><span class="list-meta"><%= d.reference_number ? `Ref ${d.reference_number} · ` : '' %><%= d.delivery_date || `expected ${d.expected_date || '—'}` %></span></span><%- include('../partials/status', { status: d.status }) %></li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted">No deliveries recorded yet.</p><% } %>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">AUDIT</p><h2>Approval history</h2></div></div>
+      <% if (history.length) { %>
+        <ul class="timeline">
+          <% history.forEach((h) => { %>
+            <li class="<%= h.status.toLowerCase() %>"><strong><%= h.status %></strong> (level <%= h.approval_level %>) by <%= h.approver_name %><br><span class="list-meta"><%= format.dateTime(h.approved_at) %></span><% if (h.comments) { %><br><%= h.comments %><% } %></li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted">No approval decisions yet.</p><% } %>
+    </section>
+  </div>
+
+  <% if (cancellable && (can('purchase_orders.manage') && ['Draft', 'Pending Approval'].includes(order.status) || can('purchase_orders.approve'))) { %>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">DANGER ZONE</p><h2>Cancel this order</h2></div></div>
+      <form action="/purchase-orders/<%= order.id %>/cancel" method="post" class="inline-fields js-confirm" data-confirm="Cancel this purchase order? Any budget commitment will be released.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input name="reason" maxlength="500" required placeholder="Reason for cancellation" aria-label="Reason for cancellation">
+        <button class="button button-danger" type="submit">Cancel order</button>
+      </form>
+    </section>
+  <% } %>
+</main>
+<%- include('../partials/footer') %>

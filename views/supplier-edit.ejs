@@ -1,0 +1,41 @@
+<%- include('partials/header', { title: 'Edit supplier', activePage: 'suppliers' }) %>
+<main class="page-shell page-narrow">
+  <a class="back-link" href="/suppliers/<%= supplier.id %>">← Back to supplier</a>
+  <section class="panel form-panel">
+    <div class="section-heading">
+      <div><p class="eyebrow">SUPPLIER PROFILE</p><h1>Edit supplier</h1><p class="muted">Update <%= supplier.vendor_name %> and its qualification status.</p></div>
+    </div>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form action="/suppliers/<%= supplier.id %>/edit" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Supplier code *<input name="supplier_code" maxlength="50" required value="<%= supplier.supplier_code %>"></label>
+      <label>Supplier name *<input name="vendor_name" maxlength="255" required value="<%= supplier.vendor_name %>"></label>
+      <label>Contact person *<input name="key_account_manager" maxlength="255" required value="<%= supplier.key_account_manager %>"></label>
+      <label>Phone number *<input name="contact_number" maxlength="50" required value="<%= supplier.contact_number %>"></label>
+      <label>Email address *<input name="email" type="email" maxlength="255" required value="<%= supplier.email %>"></label>
+      <label>Tax identification number<input name="tax_id" maxlength="50" value="<%= supplier.tax_id || '' %>"></label>
+      <label>Supplier category *<input name="material_category" maxlength="255" required value="<%= supplier.material_category %>"></label>
+      <label>Service reliability rating
+        <select name="reliability_rating">
+          <option value="">Not rated yet</option>
+          <% [5, 4, 3, 2, 1].forEach((r) => { %><option value="<%= r %>" <%= String(supplier.reliability_rating || '') === String(r) ? 'selected' : '' %>><%= r %> / 5</option><% }) %>
+        </select>
+      </label>
+      <label>Credit terms (days) *<input name="credit_terms" type="number" min="0" step="1" required value="<%= supplier.credit_terms %>"></label>
+      <label>Delivery lead time (days) *<input name="delivery_lead_time" type="number" min="0" step="1" required value="<%= supplier.delivery_lead_time %>"></label>
+      <label class="field-wide">Business address *<textarea name="warehouse_address" rows="3" required><%= supplier.warehouse_address %></textarea></label>
+      <label class="field-wide">Status
+        <select name="status" required>
+          <% statuses.forEach((status) => { %>
+            <option value="<%= status %>" <%= supplier.status === status ? 'selected' : '' %>><%= status %></option>
+          <% }) %>
+        </select>
+      </label>
+      <div class="form-actions field-wide">
+        <a class="button button-secondary" href="/suppliers">Cancel</a>
+        <button class="button button-primary" type="submit">Save changes</button>
+      </div>
+    </form>
+  </section>
+</main>
+<%- include('partials/footer') %>

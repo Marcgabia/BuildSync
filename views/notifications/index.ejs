@@ -1,0 +1,46 @@
+<%- include('../partials/header', { title: 'Notifications', activePage: 'notifications' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">NOTIFICATION CENTER</p><h1>Notifications</h1><p class="muted">Approvals, deliveries, stock, budget, and account events relevant to you.</p></div>
+    <% if (unreadCount > 0) { %>
+      <form action="/notifications/read-all" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="button button-secondary" type="submit">Mark all as read</button>
+      </form>
+    <% } %>
+  </div>
+  <section class="panel">
+    <form class="filter-bar" action="/notifications" method="get">
+      <label>Type<select name="type" class="js-auto-submit"><option value="All">All types</option><% Object.entries(types).forEach(([key, label]) => { %><option value="<%= key %>" <%= filters.type === key ? 'selected' : '' %>><%= label %></option><% }) %></select></label>
+      <label>Show<select name="state" class="js-auto-submit"><option value="all">All</option><option value="unread" <%= filters.state === 'unread' ? 'selected' : '' %>>Unread</option><option value="read" <%= filters.state === 'read' ? 'selected' : '' %>>Read</option></select></label>
+      <noscript><button class="button button-secondary" type="submit">Filter</button></noscript>
+    </form>
+    <% if (notifications.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Notification</th><th>Type</th><th>Received</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          <% notifications.forEach((n) => { %>
+            <tr class="<%= n.is_read ? '' : 'unread' %>">
+              <td><% if (!n.is_read) { %><span class="unread-dot" aria-label="Unread"></span><% } %><a class="table-primary" href="/notifications/<%= n.id %>/open"><%= n.title %></a><span class="table-secondary"><%= n.message %></span></td>
+              <td><%= types[n.type] || n.type %></td>
+              <td><%= format.dateTime(n.created_at) %></td>
+              <td class="supplier-actions">
+                <% if (n.link) { %><a class="text-link" href="/notifications/<%= n.id %>/open">Open</a><% } %>
+                <% if (!n.is_read) { %>
+                  <form action="/notifications/<%= n.id %>/read" method="post" class="inline-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="text-button" type="submit">Mark as read</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+      <%- include('../partials/pagination', { pageInfo, basePath: '/notifications', params: { type: filters.type, state: filters.state === 'all' ? '' : filters.state }, noun: 'notifications' }) %>
+    <% } else { %>
+      <div class="empty-state"><span class="empty-icon" aria-hidden="true">✓</span><h3>You're all caught up</h3><p>No notifications match these filters.</p></div>
+    <% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

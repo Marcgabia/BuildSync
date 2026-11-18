@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"<% if (locals.theme) { %> data-theme="<%= theme %>"<% } %>>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>First-time setup · BuildSync Procurement</title>
+  <link rel="stylesheet" href="/styles.css?v=5">
+</head>
+<body class="auth-body">
+  <%- include('../partials/theme-toggle', { floating: true }) %>
+  <div class="auth-split">
+    <%- include('_brand') %>
+    <main class="auth-main">
+      <section class="auth-card">
+        <span class="brand auth-mobile-brand"><span class="brand-mark" aria-hidden="true">B</span><span>BuildSync<span class="brand-light"> Procurement</span></span></span>
+        <p class="eyebrow">First-time setup</p>
+        <h1>Create the Super Admin</h1>
+        <p class="muted">No accounts exist yet. This page closes permanently once the first administrator is created.</p>
+        <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+        <form action="/setup" method="post" class="form-grid">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>Full name<input name="full_name" maxlength="150" required value="<%= values.full_name || '' %>"></label>
+          <label>Email address<input name="email" type="email" maxlength="254" autocomplete="username" required value="<%= values.email || '' %>"></label>
+          <label>Department
+            <select name="department_id" required>
+              <% departments.forEach((d) => { %><option value="<%= d.id %>" <%= String(values.department_id || '') === String(d.id) || (!values.department_id && d.code === 'ADMIN') ? 'selected' : '' %>><%= d.name %></option><% }) %>
+            </select>
+          </label>
+          <%- include('../partials/password-input', { id: 'setup-password', name: 'password', label: 'Password', autocomplete: 'new-password', minlength: 10, hint: '10+ characters with a letter and a number.' }) %>
+          <%- include('../partials/password-input', { id: 'setup-password-confirm', name: 'password_confirmation', label: 'Confirm password', autocomplete: 'new-password', minlength: 10 }) %>
+          <div class="form-actions"><button class="button button-primary" type="submit">Create account and sign in</button></div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js?v=5" defer></script>
+</body>
+</html>

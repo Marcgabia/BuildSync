@@ -1,0 +1,30 @@
+<%- include('../partials/header', { title: 'Activity logs', activePage: 'activity-logs' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">AUDIT TRAIL</p><h1>Activity logs</h1><p class="muted">Read-only record of sign-ins, changes, approvals, deliveries, and administration. Entries cannot be edited or deleted.</p></div>
+    <% if (can('reports.export')) { %><a class="button button-secondary" href="/activity-logs/export.csv?q=<%= encodeURIComponent(filters.search) %>&amp;module=<%= encodeURIComponent(filters.module) %>&amp;user=<%= filters.userId || '' %>&amp;from=<%= filters.from %>&amp;to=<%= filters.to %>">Export CSV</a><% } %>
+  </div>
+  <section class="panel">
+    <form class="filter-bar" action="/activity-logs" method="get">
+      <label>Search<input type="search" name="q" value="<%= filters.search %>" placeholder="Description, action, record ID"></label>
+      <label>Module<select name="module"><option value="All">All modules</option><% modules.forEach((m) => { %><option <%= filters.module === m ? 'selected' : '' %>><%= m %></option><% }) %></select></label>
+      <label>User<select name="user"><option value="">All users</option><% users.forEach((u) => { %><option value="<%= u.id %>" <%= filters.userId === Number(u.id) ? 'selected' : '' %>><%= u.full_name %></option><% }) %></select></label>
+      <label>From<input type="date" name="from" value="<%= filters.from %>"></label>
+      <label>To<input type="date" name="to" value="<%= filters.to %>"></label>
+      <button class="button button-secondary" type="submit">Filter</button>
+      <a class="text-link" href="/activity-logs">Clear</a>
+    </form>
+    <% if (logs.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Timestamp</th><th>User</th><th>Module</th><th>Action</th><th>Record</th><th>Description</th><th>IP address</th></tr></thead>
+        <tbody>
+          <% logs.forEach((l) => { %>
+            <tr><td><%= l.id %></td><td><%= format.dateTime(l.created_at) %></td><td><%= l.user_name || 'System' %></td><td><%= l.module %></td><td><%= l.action %></td><td><%= l.record_id || '—' %></td><td><%= l.description %></td><td><%= l.ip_address || '—' %></td></tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+      <%- include('../partials/pagination', { pageInfo, basePath: '/activity-logs', params: { q: filters.search, module: filters.module, user: filters.userId, from: filters.from, to: filters.to }, noun: 'entries' }) %>
+    <% } else { %><div class="empty-state"><p>No activity matches these filters.</p></div><% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

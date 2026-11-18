@@ -1,0 +1,4 @@
+<nav class="tabs" aria-label="User and role management">
+  <% if (can('users.manage')) { %><a class="<%= tab === 'users' ? 'active' : '' %>" href="/admin/users">Users</a><% } %>
+  <% if (can('roles.manage')) { %><a class="<%= tab === 'roles' ? 'active' : '' %>" href="/admin/roles">Roles &amp; permissions</a><% } %>
+</nav>

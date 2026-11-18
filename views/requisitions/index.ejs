@@ -1,0 +1,59 @@
+<%- include('../partials/header', { title: 'Purchase requisitions', activePage: 'requisitions' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">DEMAND</p>
+      <h1>Purchase requisitions</h1>
+      <p class="muted">Request materials and supplies, submit them for approval, and track them through to a purchase order.</p>
+    </div>
+    <% if (can('requisitions.create')) { %><a class="button button-primary" href="/requisitions/new">New requisition <span aria-hidden="true">＋</span></a><% } %>
+  </div>
+
+  <section class="panel">
+    <% if (canSeeAll) { %>
+      <nav class="tabs" aria-label="Requisition scope">
+        <a class="<%= filters.scope === 'all' ? 'active' : '' %>" href="/requisitions">All requisitions</a>
+        <a class="<%= filters.scope === 'mine' ? 'active' : '' %>" href="/requisitions?scope=mine">My requisitions</a>
+      </nav>
+    <% } %>
+    <form class="filter-bar" action="/requisitions" method="get" role="search">
+      <% if (filters.scope === 'mine' && canSeeAll) { %><input type="hidden" name="scope" value="mine"><% } %>
+      <label>Search<input type="search" name="q" value="<%= filters.search %>" placeholder="Number, purpose, requester"></label>
+      <label>Status<select name="status"><option value="All">All statuses</option><% statuses.forEach((s) => { %><option <%= filters.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+      <label>Department<select name="department"><option value="">All departments</option><% departments.forEach((d) => { %><option value="<%= d.id %>" <%= filters.departmentId === d.id ? 'selected' : '' %>><%= d.name %></option><% }) %></select></label>
+      <label>From<input type="date" name="from" value="<%= filters.from %>"></label>
+      <label>To<input type="date" name="to" value="<%= filters.to %>"></label>
+      <button class="button button-secondary" type="submit">Filter</button>
+      <a class="text-link" href="/requisitions<%= filters.scope === 'mine' && canSeeAll ? '?scope=mine' : '' %>">Clear</a>
+    </form>
+    <% if (requisitions.length) { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Requisition</th><th>Requested by</th><th>Department</th><th>Required</th><th>Items</th><th>Status</th><th class="align-right">Estimated</th></tr></thead>
+          <tbody>
+            <% requisitions.forEach((r) => { %>
+              <tr>
+                <td><a class="table-primary" href="/requisitions/<%= r.id %>"><%= r.requisition_number %></a><span class="table-secondary"><%= r.purpose %></span></td>
+                <td><%= r.requester_name %><span class="table-secondary"><%= r.request_date %></span></td>
+                <td><%= r.department_name %></td>
+                <td><%= r.required_date %></td>
+                <td><%= r.item_count %></td>
+                <td><%- include('../partials/status', { status: r.status }) %><% if (r.purchase_order_id) { %><span class="table-secondary"><a class="text-link" href="/purchase-orders/<%= r.purchase_order_id %>">View PO</a></span><% } %></td>
+                <td class="align-right"><%= format.money(r.total_estimated) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <%- include('../partials/pagination', { pageInfo, basePath: '/requisitions', params: { q: filters.search, status: filters.status, department: filters.departmentId, from: filters.from, to: filters.to, scope: filters.scope === 'mine' && canSeeAll ? 'mine' : '' }, noun: 'requisitions' }) %>
+    <% } else { %>
+      <div class="empty-state">
+        <span class="empty-icon" aria-hidden="true">＋</span>
+        <h3>No requisitions found</h3>
+        <p>Create a requisition to request materials. Approved requisitions can be converted into purchase orders.</p>
+        <% if (can('requisitions.create')) { %><a class="button button-primary" href="/requisitions/new">Create requisition</a><% } %>
+      </div>
+    <% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

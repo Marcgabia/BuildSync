@@ -1,0 +1,35 @@
+<%- include('../partials/header', { title: report.title, activePage: 'reports' }) %>
+<% const qs = new URLSearchParams(Object.entries({ from: filters.from, to: filters.to, status: filters.status, q: filters.search }).filter(([, v]) => v && v !== 'All')).toString(); %>
+<main class="page-shell">
+  <a class="back-link" href="/reports">← All reports</a>
+  <div class="page-heading">
+    <div><p class="eyebrow"><%= report.group.toUpperCase() %></p><h1><%= report.title %></h1><p class="muted"><%= report.description %></p></div>
+    <% if (can('reports.export')) { %>
+      <div class="toolbar">
+        <a class="button button-secondary" href="/reports/<%= key %>?<%= qs %><%- qs ? '&amp;' : '' %>format=csv">Export CSV (Excel)</a>
+        <a class="button button-primary" href="/reports/<%= key %>?<%= qs %><%- qs ? '&amp;' : '' %>format=print">Print / PDF</a>
+      </div>
+    <% } %>
+  </div>
+  <section class="panel">
+    <form class="filter-bar" action="/reports/<%= key %>" method="get">
+      <% if (report.dated) { %>
+        <label>From<input type="date" name="from" value="<%= filters.from %>"></label>
+        <label>To<input type="date" name="to" value="<%= filters.to %>"></label>
+      <% } %>
+      <% if (report.statuses) { %>
+        <label>Status / type<select name="status"><option value="All">All</option><% report.statuses.forEach((s) => { %><option <%= filters.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+      <% } %>
+      <label>Search<input type="search" name="q" value="<%= filters.search %>"></label>
+      <button class="button button-secondary" type="submit">Apply</button>
+      <a class="text-link" href="/reports/<%= key %>">Reset</a>
+    </form>
+    <p class="report-meta"><%= rows.length %> row(s)<%= filters.from || filters.to ? ` · ${filters.from || 'start'} to ${filters.to || 'today'}` : '' %></p>
+    <% if (rows.length) { %>
+      <%- include('table', { report, rows, totals, display }) %>
+    <% } else { %>
+      <div class="empty-state"><h3>No data for these filters</h3><p>Adjust the date range or filters.</p></div>
+    <% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

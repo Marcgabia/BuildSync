@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= report.title %> · BuildSync report</title>
+  <link rel="stylesheet" href="/styles.css?v=5">
+</head>
+<body>
+  <main class="page-shell">
+    <div class="no-print toolbar">
+      <a class="button button-secondary" href="/reports/<%= key %>">← Back</a>
+      <button class="button button-primary js-print" type="button">Print / Save as PDF</button>
+      <span class="form-hint">Choose “Save as PDF” as the printer to export a PDF.</span>
+    </div>
+    <br>
+    <p class="eyebrow"><%= organization %></p>
+    <h1><%= report.title %></h1>
+    <p class="report-meta"><%= report.description %> · Generated <%= generatedAt %> by <%= currentUser.fullName %><%= filters.from || filters.to ? ` · Period ${filters.from || 'start'} to ${filters.to || 'today'}` : '' %><%= filters.status !== 'All' ? ` · ${filters.status}` : '' %><%= filters.search ? ` · “${filters.search}”` : '' %> · <%= rows.length %> row(s)</p>
+    <% if (rows.length) { %>
+      <%- include('table', { report, rows, totals, display }) %>
+    <% } else { %><p>No data for the selected filters.</p><% } %>
+  </main>
+  <script src="/app.js?v=5" defer></script>
+</body>
+</html>

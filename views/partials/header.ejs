@@ -1,0 +1,121 @@
+<%
+  const allowed = (...keys) => typeof locals.can !== 'function' ? true : locals.can(...keys);
+  const user = locals.currentUser || null;
+  const icons = {
+    dashboard: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect>',
+    notifications: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5Z"></path><path d="M10 20.5h4"></path>',
+    requisitions: '<rect x="5" y="3.5" width="14" height="17" rx="2"></rect><path d="M9 3.5V6h6V3.5M8.5 11h7M8.5 15h4.5"></path>',
+    approvals: '<circle cx="12" cy="12" r="8.5"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path>',
+    'purchase-orders': '<path d="M7 3.5h7l5 5V20a.5.5 0 0 1-.5.5h-11A1.5 1.5 0 0 1 6 19V5a1.5 1.5 0 0 1 1-1.5Z"></path><path d="M14 3.5V9h5M9 13h6M9 16.5h6"></path>',
+    deliveries: '<path d="M3.5 6.5h10v9h-10zM13.5 9.5h4l3 3v3h-7"></path><circle cx="7" cy="17.5" r="1.8"></circle><circle cx="17" cy="17.5" r="1.8"></circle>',
+    suppliers: '<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"></path><circle cx="10" cy="7.5" r="3.5"></circle><path d="M16 4.2a3.5 3.5 0 0 1 0 6.6M17 15h.5a3.5 3.5 0 0 1 3.5 3.5V20"></path>',
+    products: '<path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z"></path><path d="M4 8l8 4.5L20 8M12 12.5v8"></path>',
+    budgets: '<rect x="3.5" y="6" width="17" height="12.5" rx="2"></rect><path d="M3.5 10h17M15.5 14.5h2"></path>',
+    reports: '<path d="M4 20h16M7 16v-4M12 16V7M17 16v-7"></path>',
+    'activity-logs': '<circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path>',
+    admin: '<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"></path>',
+    settings: '<circle cx="12" cy="12" r="3"></circle><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6"></path>',
+    logout: '<path d="M14 4.5h4.5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H14M10 16l4-4-4-4M14 12H4"></path>'
+  };
+  const sections = [
+    { label: 'Workspace', items: [
+      { key: 'dashboard', href: '/', label: 'Overview', show: true },
+      { key: 'notifications', href: '/notifications', label: 'Notifications', show: !!user || typeof locals.can !== 'function' }
+    ] },
+    { label: 'Procurement', items: [
+      { key: 'requisitions', href: '/requisitions', label: 'Purchase requisitions', show: allowed('requisitions.create', 'requisitions.view_all', 'requisitions.approve') },
+      { key: 'approvals', href: '/approvals', label: 'Approvals', show: allowed('requisitions.approve', 'purchase_orders.approve') },
+      { key: 'purchase-orders', href: '/purchase-orders', label: 'Purchase orders', show: allowed('purchase_orders.view', 'purchase_orders.manage', 'purchase_orders.approve') },
+      { key: 'deliveries', href: '/deliveries', label: 'Deliveries & receiving', show: allowed('deliveries.view', 'deliveries.manage') }
+    ] },
+    { label: 'Catalog', items: [
+      { key: 'suppliers', href: '/suppliers', label: 'Suppliers', show: allowed('suppliers.view', 'suppliers.manage') },
+      { key: 'products', href: '/products', label: 'Products & inventory', show: allowed('products.view', 'products.manage', 'inventory.view', 'inventory.manage') }
+    ] },
+    { label: 'Finance & insight', items: [
+      { key: 'budgets', href: '/budgets', label: 'Budget management', show: allowed('budgets.view', 'budgets.manage') },
+      { key: 'reports', href: '/reports', label: 'Reports & analytics', show: allowed('reports.view') }
+    ] },
+    { label: 'Administration', items: [
+      { key: 'activity-logs', href: '/activity-logs', label: 'Activity logs', show: allowed('activity_logs.view') },
+      { key: 'admin', href: allowed('users.manage') ? '/admin/users' : '/admin/roles', label: 'Users & roles', show: allowed('users.manage', 'roles.manage') },
+      { key: 'settings', href: '/settings', label: 'Settings', show: allowed('settings.manage') }
+    ] }
+  ].map((section) => ({ ...section, items: section.items.filter((item) => item.show) })).filter((section) => section.items.length);
+  const unread = locals.unreadCount || 0;
+  const today = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+%><!doctype html>
+<html lang="en"<% if (locals.theme) { %> data-theme="<%= theme %>"<% } %>>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title><%= title %> · BuildSync Procurement</title>
+  <link rel="stylesheet" href="/styles.css?v=5">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" aria-label="BuildSync Procurement home">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span>BuildSync<span class="brand-light"> Procurement</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Primary navigation">
+        <% sections.forEach((section) => { %>
+        <div class="nav-section"><%= section.label %></div>
+        <% section.items.forEach((item) => { %>
+        <a class="nav-link <%= activePage === item.key ? 'active' : '' %>" href="<%= item.href %>" <% if (activePage === item.key) { %>aria-current="page"<% } %>>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><%- icons[item.key] %></svg>
+          <span><%= item.label %></span>
+          <% if (item.key === 'notifications' && unread > 0) { %><span class="nav-badge"><%= unread > 99 ? '99+' : unread %></span><% } %>
+        </a>
+        <% }) %>
+        <% }) %>
+        <% if (user) { %>
+        <div class="nav-section">Account</div>
+        <a class="nav-link" href="/account/password">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>
+          <span>Change password</span>
+        </a>
+        <form action="/logout" method="post" class="nav-logout">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+          <button class="nav-link nav-button" type="submit">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><%- icons.logout %></svg>
+            <span>Logout</span>
+          </button>
+        </form>
+        <% } %>
+      </nav>
+      <div class="sidebar-workspace">
+        <span class="workspace-dot" aria-hidden="true"></span>
+        <span><strong>Mindoro Tech</strong><small>Procurement workspace · online</small></span>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop js-nav-close" aria-hidden="true"></div>
+    <div class="app-main">
+      <header class="topbar">
+        <button class="nav-toggle js-nav-toggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+        </button>
+        <div class="topbar-title"><strong><%= title %></strong><br><span><%= today %></span></div>
+        <div class="topbar-actions">
+          <%- include('theme-toggle') %>
+          <% if (user) { %>
+          <a class="bell" href="/notifications" aria-label="Notifications<%= unread ? `, ${unread} unread` : '' %>">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><%- icons.notifications %></svg>
+            <% if (unread > 0) { %><span class="bell-count"><%= unread > 99 ? '99+' : unread %></span><% } %>
+          </a>
+          <div class="topbar-user">
+            <span class="avatar" aria-hidden="true"><%= user.fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() %></span>
+            <span>
+              <strong><%= user.fullName %></strong>
+              <small><%= user.roles.map((role) => role.name).join(', ') || 'No active role' %><%= user.departmentName ? ` · ${user.departmentName}` : '' %></small>
+            </span>
+          </div>
+          <% } %>
+        </div>
+      </header>
+      <div class="site-content">
+      <% if (locals.flash && locals.flash.message) { %>
+        <div class="flash-wrap"><div class="alert alert-<%= locals.flash.type === 'error' ? 'error' : locals.flash.type === 'warning' ? 'warning' : 'success' %>" role="<%= locals.flash.type === 'error' ? 'alert' : 'status' %>"><%= locals.flash.message %></div></div>
+      <% } %>

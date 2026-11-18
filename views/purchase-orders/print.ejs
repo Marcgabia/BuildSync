@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= order.po_number %> · Purchase order</title>
+  <link rel="stylesheet" href="/styles.css?v=5">
+</head>
+<body>
+  <main class="page-shell">
+    <div class="no-print toolbar">
+      <a class="button button-secondary" href="/purchase-orders/<%= order.id %>">← Back</a>
+      <button class="button button-primary js-print" type="button">Print / Save as PDF</button>
+      <span class="form-hint">Choose “Save as PDF” as the printer to export a PDF.</span>
+    </div>
+    <br>
+    <section class="panel">
+      <div class="print-header">
+        <div>
+          <p class="eyebrow"><%= organization %></p>
+          <h1>Purchase Order</h1>
+          <p class="muted"><%= order.po_number %> · <%= order.status %></p>
+        </div>
+        <dl class="detail-grid">
+          <div><dt>Order date</dt><dd><%= order.order_date || format.date(order.created_at) %></dd></div>
+          <div><dt>Expected delivery</dt><dd><%= order.target_date %></dd></div>
+          <div><dt>Requisition</dt><dd><%= order.requisition_number || '—' %></dd></div>
+          <div><dt>Department</dt><dd><%= order.department_name || '—' %></dd></div>
+        </dl>
+      </div>
+      <dl class="detail-grid">
+        <div><dt>Supplier</dt><dd><strong><%= order.vendor_name %></strong><br><%= order.supplier_address %><br><%= order.key_account_manager %> · <%= order.supplier_phone %> · <%= order.supplier_email %><% if (order.supplier_tax_id) { %><br>TIN <%= order.supplier_tax_id %><% } %></dd></div>
+        <div><dt>Terms</dt><dd><%= order.credit_terms %> days</dd></div>
+      </dl>
+      <br>
+      <table>
+        <thead><tr><th>#</th><th>Item code</th><th>Description</th><th class="align-right">Qty</th><th class="align-right">Unit price</th><th class="align-right">Amount</th></tr></thead>
+        <tbody>
+          <% order.items.forEach((item) => { %>
+            <tr><td><%= item.line_no %></td><td><%= item.item_code %></td><td><%= item.description %></td><td class="align-right"><%= item.quantity %> <%= item.unit || '' %></td><td class="align-right"><%= format.money(item.unit_price) %></td><td class="align-right"><%= format.money(item.line_total) %></td></tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="5" class="align-right">Subtotal</td><td class="align-right"><%= format.money(order.subtotal) %></td></tr>
+          <tr><td colspan="5" class="align-right">Discount</td><td class="align-right">−<%= format.money(order.discount_amount) %></td></tr>
+          <tr><td colspan="5" class="align-right">Tax (<%= Number(order.tax_rate) %>%)</td><td class="align-right"><%= format.money(order.tax_amount) %></td></tr>
+          <tr><td colspan="5" class="align-right">Total amount</td><td class="align-right"><%= format.money(order.total_cost) %></td></tr>
+        </tfoot>
+      </table>
+      <% if (order.notes) { %><p><strong>Notes:</strong> <%= order.notes %></p><% } %>
+      <br><br>
+      <dl class="detail-grid">
+        <div><dt>Prepared by</dt><dd><%= order.created_by_name || '________________' %></dd></div>
+        <div><dt>Approved by</dt><dd><%= order.approved_by_name ? `${order.approved_by_name} (${format.dateTime(order.approved_at)})` : '________________' %></dd></div>
+      </dl>
+    </section>
+  </main>
+  <script src="/app.js?v=5" defer></script>
+</body>
+</html>

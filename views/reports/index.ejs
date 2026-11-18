@@ -1,0 +1,19 @@
+<%- include('../partials/header', { title: 'Reports & analytics', activePage: 'reports' }) %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">ANALYTICS</p><h1>Reports &amp; analytics</h1><p class="muted">Every report is calculated live from the database, with date-range filters, search, CSV (Excel) export, and print/PDF.</p></div>
+  </div>
+  <div class="grid-2">
+    <% groups.forEach(([group, items]) => { %>
+      <section class="panel">
+        <div class="section-heading"><div><p class="eyebrow">REPORTS</p><h2><%= group %></h2></div></div>
+        <ul class="list-plain">
+          <% items.forEach((r) => { %>
+            <li><span><a class="table-primary" href="/reports/<%= r.key %>"><%= r.title %></a><span class="list-meta"><%= r.description %></span></span><a class="text-link" href="/reports/<%= r.key %>">Open →</a></li>
+          <% }) %>
+        </ul>
+      </section>
+    <% }) %>
+  </div>
+</main>
+<%- include('../partials/footer') %>

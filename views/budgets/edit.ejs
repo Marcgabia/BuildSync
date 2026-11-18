@@ -1,0 +1,14 @@
+<%- include('../partials/header', { title: `Edit ${budget.name}`, activePage: 'budgets' }) %>
+<main class="page-shell page-narrow">
+  <a class="back-link" href="/budgets/<%= budget.id %>">← Back to budget</a>
+  <section class="panel form-panel">
+    <div class="section-heading"><div><p class="eyebrow">FINANCE</p><h1>Edit budget</h1><p class="muted">Changes are recorded in the activity log. Department and period are locked once the budget has transactions.</p></div></div>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form action="/budgets/<%= budget.id %>/edit" method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/budget-form-fields', { values, departments, statuses }) %>
+      <div class="form-actions field-wide"><a class="button button-secondary" href="/budgets/<%= budget.id %>">Cancel</a><button class="button button-primary" type="submit">Save changes</button></div>
+    </form>
+  </section>
+</main>
+<%- include('../partials/footer') %>

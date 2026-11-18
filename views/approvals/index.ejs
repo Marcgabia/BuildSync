@@ -1,0 +1,77 @@
+<%- include('../partials/header', { title: 'Approvals', activePage: 'approvals' }) %>
+<% const decisionForm = (type, id) => `/approvals/${type}/${id}`; %>
+<main class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">APPROVAL WORKFLOW</p>
+      <h1>Pending approvals</h1>
+      <p class="muted">Review requisitions and purchase orders. Requisitions need <%= levels.requisition %> approval level(s); purchase orders need <%= levels.purchase_order %>.</p>
+    </div>
+  </div>
+
+  <% const sections = [];
+     if (can('requisitions.approve')) sections.push({ title: 'Requisitions', type: 'requisitions', rows: requisitions, link: (r) => `/requisitions/${r.id}`, number: (r) => r.requisition_number, who: (r) => `${r.requester_name} · ${r.department_name}`, amount: (r) => r.total_estimated, levelsNeeded: levels.requisition });
+     if (can('purchase_orders.approve')) sections.push({ title: 'Purchase orders', type: 'purchase-orders', rows: orders, link: (r) => `/purchase-orders/${r.id}`, number: (r) => r.po_number, who: (r) => `${r.vendor_name} · by ${r.created_by_name || '—'}`, amount: (r) => r.total_cost, levelsNeeded: levels.purchase_order }); %>
+  <% sections.forEach((section) => { %>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">AWAITING DECISION</p><h2><%= section.title %> <span class="count-badge"><%= section.rows.length %></span></h2></div></div>
+      <% if (section.rows.length) { %>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Reference</th><th>Details</th><th>Submitted</th><th>Level</th><th class="align-right">Amount</th><th>Decision</th></tr></thead>
+            <tbody>
+              <% section.rows.forEach((r) => { %>
+                <tr>
+                  <td><a class="table-primary" href="<%= section.link(r) %>"><%= section.number(r) %></a><%- include('../partials/status', { status: r.status }) %></td>
+                  <td><%= section.who(r) %><% if (r.purpose) { %><span class="table-secondary"><%= r.purpose %></span><% } %></td>
+                  <td><%= format.dateTime(r.submitted_at) %></td>
+                  <td><%= Number(r.current_approval_level) + 1 %> / <%= section.levelsNeeded %></td>
+                  <td class="align-right"><%= format.money(section.amount(r)) %></td>
+                  <td>
+                    <% if (r.decision.allowed) { %>
+                      <form action="<%= decisionForm(section.type, r.id) %>" method="post" class="inline-fields">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="return_to" value="approvals">
+                        <input name="comments" maxlength="2000" placeholder="Comment" aria-label="Comment">
+                        <button class="button button-primary button-small" type="submit" name="decision" value="approve">Approve</button>
+                        <button class="button button-warning button-small" type="submit" name="decision" value="return">Return</button>
+                        <button class="button button-danger button-small" type="submit" name="decision" value="reject" data-confirm-click="Reject this request?">Reject</button>
+                      </form>
+                    <% } else { %>
+                      <span class="table-secondary"><%= r.decision.reason || 'Not eligible' %></span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state"><span class="empty-icon" aria-hidden="true">✓</span><h3>Nothing to review</h3><p>No <%= section.title.toLowerCase() %> are waiting for approval.</p></div>
+      <% } %>
+    </section>
+  <% }) %>
+
+  <section class="panel">
+    <div class="section-heading"><div><p class="eyebrow">AUDIT</p><h2>Recent decisions</h2></div></div>
+    <% if (history.length) { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Reference</th><th>Level</th><th>Decision</th><th>Approver</th><th>Comments</th><th>Date</th></tr></thead>
+        <tbody>
+          <% history.forEach((h) => { %>
+            <tr>
+              <td><%= h.id %></td>
+              <td><a class="text-link" href="<%= h.reference_type === 'requisition' ? '/requisitions/' : '/purchase-orders/' %><%= h.reference_id %>"><%= h.reference_number || `#${h.reference_id}` %></a><span class="table-secondary"><%= h.reference_type === 'requisition' ? 'Requisition' : 'Purchase order' %></span></td>
+              <td><%= h.approval_level %></td>
+              <td><%- include('../partials/status', { status: h.status === 'Returned' ? 'Returned for Revision' : h.status }) %></td>
+              <td><%= h.approver_name %></td>
+              <td><%= h.comments || '—' %></td>
+              <td><%= format.dateTime(h.approved_at) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } else { %><p class="muted">No approval decisions have been recorded yet.</p><% } %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

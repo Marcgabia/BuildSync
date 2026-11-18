@@ -1,0 +1,17 @@
+<div class="table-wrap">
+  <table>
+    <thead><tr><% report.columns.forEach((c) => { %><th class="<%= ['money', 'number', 'percent'].includes(c.type) ? 'align-right' : '' %>"><%= c.label %></th><% }) %></tr></thead>
+    <tbody>
+      <% rows.forEach((row) => { %>
+        <tr>
+          <% report.columns.forEach((c) => { %>
+            <td class="<%= ['money', 'number', 'percent'].includes(c.type) ? 'align-right' : '' %>"><% if (c.type === 'status') { %><span class="status-pill <%= format.statusClass(row[c.key]) %>"><%= row[c.key] %></span><% } else { %><%= display(c, row[c.key]) %><% } %></td>
+          <% }) %>
+        </tr>
+      <% }) %>
+    </tbody>
+    <% if (Object.keys(totals).length) { %>
+      <tfoot><tr><% report.columns.forEach((c, i) => { %><td class="<%= ['money', 'number', 'percent'].includes(c.type) ? 'align-right' : '' %>"><%= c.key in totals ? display(c, totals[c.key]) : (i === 0 ? 'Total' : '') %></td><% }) %></tr></tfoot>
+    <% } %>
+  </table>
+</div>

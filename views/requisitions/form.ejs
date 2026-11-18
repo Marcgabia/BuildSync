@@ -1,0 +1,47 @@
+<%- include('../partials/header', { title: requisition ? `Edit ${requisition.requisition_number}` : 'New requisition', activePage: 'requisitions' }) %>
+<main class="page-shell">
+  <a class="back-link" href="<%= requisition ? `/requisitions/${requisition.id}` : '/requisitions' %>">← Back</a>
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">PURCHASE REQUISITION</p>
+      <h1><%= requisition ? `Edit ${requisition.requisition_number}` : 'New requisition' %></h1>
+      <p class="muted">Estimated prices default to the catalog price. Save as a draft or submit for approval.</p>
+    </div>
+  </div>
+  <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+  <% if (!products.length) { %>
+    <section class="panel notice-box"><p>No active products exist yet. Ask a procurement officer to add products to the catalog first.</p></section>
+  <% } else { %>
+  <form action="<%= requisition ? `/requisitions/${requisition.id}/edit` : '/requisitions' %>" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">REQUEST</p><h2>Purpose and schedule</h2></div><span class="form-hint">Requested by <%= currentUser.fullName %></span></div>
+      <div class="form-grid">
+        <label>Department *
+          <% if (canChooseDepartment) { %>
+            <select name="department_id" required>
+              <option value="">Choose a department</option>
+              <% departments.forEach((d) => { %><option value="<%= d.id %>" <%= String(values.department_id || '') === String(d.id) ? 'selected' : '' %>><%= d.name %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input value="<%= currentUser.departmentName %>" disabled>
+          <% } %>
+        </label>
+        <label>Required date *<input type="date" name="required_date" required value="<%= values.required_date || '' %>"></label>
+        <label class="field-wide">Purpose or justification *<textarea name="purpose" rows="3" maxlength="5000" required placeholder="Why are these materials needed?"><%= values.purpose || '' %></textarea></label>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">ITEMS</p><h2>Requested products</h2></div></div>
+      <%- include('../partials/line-items', { products, items: items.map((i) => ({ ...i, unit_price: i.estimated_unit_price !== undefined ? i.estimated_unit_price : i.unit_price })), priceLabel: 'Est. unit price' }) %>
+      <div class="totals-box js-totals"><div class="grand"><span>Estimated total</span><span data-total="subtotal">₱0.00</span></div></div>
+    </section>
+    <div class="form-actions panel">
+      <a class="button button-secondary" href="<%= requisition ? `/requisitions/${requisition.id}` : '/requisitions' %>">Cancel</a>
+      <button class="button button-secondary" type="submit" name="intent" value="draft">Save as draft</button>
+      <button class="button button-primary" type="submit" name="intent" value="submit">Submit for approval</button>
+    </div>
+  </form>
+  <% } %>
+</main>
+<%- include('../partials/footer') %>
