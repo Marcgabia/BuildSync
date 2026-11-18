@@ -24,9 +24,9 @@ if [ ! -f .env ]; then
   sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=$(openssl rand -hex 24)|" .env
   sed -i "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=$(openssl rand -hex 24)|" .env
   sed -i "s|^APP_BIND_ADDRESS=.*|APP_BIND_ADDRESS=0.0.0.0|" .env
-  sed -i "s|^APP_PORT=.*|APP_PORT=80|" .env
+  sed -i "s|^APP_PORT=.*|APP_PORT=8080|" .env
   chmod 600 .env
-  echo "Created .env (public on port 80, random database passwords)."
+  echo "Created .env (public on port 8080, random database passwords)."
 fi
 
 echo

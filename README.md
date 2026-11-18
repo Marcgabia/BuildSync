@@ -174,11 +174,11 @@ MySQL data is stored in the `mysql-data` volume and uploaded receipts in the `up
 ## Deploy to AWS EC2
 
 1. Launch an Ubuntu 24.04 instance (t3.small or larger, 20 GB disk). Security group: SSH (22) from
-   your IP only, HTTP (80) and HTTPS (443) from anywhere. Never open 3306.
+   your IP only, Custom TCP 8080 from anywhere. Never open 3306.
 2. Attach an Elastic IP. If you use a domain, add a DNS `A` record pointing to it.
 3. SSH in, `git clone` this repository, `cd` into it, and run `bash scripts/ec2-setup.sh`
-   (installs Docker and creates `.env` with `APP_BIND_ADDRESS=0.0.0.0`, `APP_PORT=80` and random passwords).
-4. Log out and back in, run `docker compose up -d --build`, then open `http://<Elastic-IP>` and complete `/setup`.
+   (installs Docker and creates `.env` with `APP_BIND_ADDRESS=0.0.0.0`, `APP_PORT=8080` and random passwords).
+4. Log out and back in, run `docker compose up -d --build`, then open `http://<Elastic-IP>:8080` and complete `/setup`.
 
 Update with `git pull && docker compose up -d --build`. Back up with EBS snapshots.
 
